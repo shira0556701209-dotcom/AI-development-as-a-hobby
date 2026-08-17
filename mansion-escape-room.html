@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>אחוזת הרוזן | חידת הבריחה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Rubik:wght@400;500;700&family=Fira+Code:wght@500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ================================================================
+   THEME VARIABLES — change these to re-skin the whole game quickly
+   ================================================================ */
+:root{
+  --bg-deep:#120b08;
+  --bg-panel: rgba(38,24,16,0.92);
+  --bg-panel-light: rgba(52,33,21,0.85);
+  --gold:#d8ae4e;
+  --gold-soft: rgba(216,174,78,0.35);
+  --ember:#ff8a4c;
+  --blood:#a3273a;
+  --parchment:#ecdcb8;
+  --text-muted:#a8916d;
+  --font-title:'Frank Ruhl Libre', serif;
+  --font-ui:'Rubik', sans-serif;
+  --font-mono:'Fira Code', monospace;
+  --glow-gold: 0 0 10px rgba(216,174,78,0.55), 0 0 24px rgba(216,174,78,0.18);
+}
+
+*{ box-sizing:border-box; }
+
+html,body{
+  margin:0; padding:0;
+  background:var(--bg-deep);
+  color:var(--parchment);
+  font-family:var(--font-ui);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* Warm vignette + subtle candlelight flicker over the whole page */
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:9998;
+  background:radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.6) 100%);
+}
+body::after{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:9997;
+  background:radial-gradient(circle at 30% 20%, rgba(255,138,76,0.05), transparent 55%);
+  animation: ambientFlicker 5s ease-in-out infinite;
+}
+@keyframes ambientFlicker{
+  0%,100%{ opacity:1; }
+  45%{ opacity:0.7; }
+  50%{ opacity:1; }
+  78%{ opacity:0.85; }
+}
+
+#app{ position:relative; min-height:100vh; z-index:1; }
+
+/* ---------- SHAKE + GLOW ---------- */
+@keyframes shake{
+  10%,90%{ transform:translateX(-2px); }
+  20%,80%{ transform:translateX(4px); }
+  30%,50%,70%{ transform:translateX(-9px); }
+  40%,60%{ transform:translateX(9px); }
+}
+.shake{ animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+@keyframes pulse-gold{
+  0%,100%{ box-shadow: 0 0 10px rgba(216,174,78,0.4), inset 0 0 20px rgba(216,174,78,0.05); }
+  50%{ box-shadow: 0 0 40px rgba(216,174,78,0.95), inset 0 0 45px rgba(216,174,78,0.18); }
+}
+.solved-glow{ animation: pulse-gold 1.2s ease-in-out 2; border-color: var(--gold) !important; }
+
+@keyframes flicker{
+  0%,19%,21%,23%,80%,100%{ opacity:1; }
+  20%,22%{ opacity:0.45; }
+}
+.flicker{ animation: flicker 4.5s infinite; }
+
+@keyframes floaty{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
+@keyframes blinkDot{ 0%,100%{ opacity:1; box-shadow:0 0 6px currentColor; } 50%{ opacity:0.25; box-shadow:none; } }
+
+/* ---------- START SCREEN ---------- */
+#start-screen{
+  position:fixed; inset:0; z-index:200;
+  background: radial-gradient(ellipse at 50% 15%, #241610 0%, #120b08 70%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:2rem;
+  transition: opacity .5s ease;
+}
+#start-screen.hidden{ opacity:0; pointer-events:none; }
+#start-screen h1{
+  font-family:var(--font-title);
+  font-size:clamp(1.8rem, 4.5vw, 3rem);
+  color:var(--gold);
+  text-shadow: var(--glow-gold);
+  letter-spacing:1px;
+  margin-bottom:0.4rem;
+}
+#start-screen .subtitle{
+  color:var(--ember);
+  font-family:var(--font-mono);
+  margin-bottom:1.6rem;
+  font-size:0.9rem;
+  letter-spacing:1px;
+}
+#start-screen p.lore{
+  max-width:660px; line-height:1.95; color:var(--parchment);
+  background:var(--bg-panel);
+  border:1px solid var(--gold-soft);
+  border-radius:10px;
+  padding:1.4rem 1.7rem;
+  margin-bottom:1.9rem;
+  box-shadow: var(--glow-gold);
+  font-size:1.02rem;
+}
+
+.btn-neon{
+  background:transparent;
+  border:2px solid var(--gold);
+  color:var(--gold);
+  font-family:var(--font-ui);
+  font-weight:700;
+  font-size:1.05rem;
+  padding:0.85rem 2.3rem;
+  border-radius:8px;
+  cursor:pointer;
+  transition: all .25s ease;
+  text-shadow:0 0 6px rgba(216,174,78,0.6);
+}
+.btn-neon:hover{
+  background:var(--gold);
+  color:#241505;
+  box-shadow:0 0 28px rgba(216,174,78,0.8);
+  transform: translateY(-2px);
+}
+
+/* ---------- HEADER ---------- */
+#game-header{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:1rem; flex-wrap:wrap;
+  background:linear-gradient(180deg, rgba(18,11,8,0.98), rgba(18,11,8,0.85));
+  border-bottom:1px solid var(--gold-soft);
+  padding:0.7rem 1.2rem;
+  backdrop-filter: blur(6px);
+}
+.logo{
+  font-family:var(--font-title);
+  color:var(--gold);
+  font-size:1rem;
+  letter-spacing:0.5px;
+  text-shadow:0 0 6px rgba(216,174,78,0.5);
+}
+.timer{
+  font-family:var(--font-mono);
+  font-size:1.6rem; font-weight:600;
+  color:var(--gold);
+  text-shadow:0 0 10px rgba(216,174,78,0.6);
+  padding:0.2rem 0.9rem;
+  border:1px solid var(--gold-soft);
+  border-radius:6px;
+  min-width:110px; text-align:center;
+  transition: color .3s, border-color .3s;
+}
+.timer.low-time{
+  color:var(--blood); border-color:var(--blood);
+  text-shadow:0 0 12px rgba(163,39,58,0.9);
+  animation: blinkDot 1s infinite;
+}
+.timer.penalty-flash{ animation: shake 0.4s; color:var(--blood) !important; }
+
+.header-right{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+
+.progress-dots{ display:flex; gap:0.4rem; align-items:center; }
+.progress-dot{
+  width:12px; height:12px; border-radius:50%;
+  background:#3a2c1e; border:1px solid #4d3a26;
+  transition: all .3s;
+}
+.progress-dot.dot-active{ background:var(--ember); box-shadow:0 0 8px var(--ember); }
+.progress-dot.dot-solved{ background:var(--gold); box-shadow:0 0 8px var(--gold); }
+
+.inventory-bar{
+  display:flex; gap:0.5rem; min-height:38px; align-items:center;
+  padding:0.2rem 0.5rem;
+  border:1px dashed var(--gold-soft);
+  border-radius:8px;
+  background:rgba(216,174,78,0.04);
+}
+.inventory-bar:empty::before{ content:"תיק ריק"; color:var(--text-muted); font-size:0.75rem; padding:0 0.4rem; }
+.inventory-item{
+  font-size:1.3rem; cursor:pointer; padding:0.15rem 0.4rem; border-radius:6px;
+  transition: transform .2s; filter: drop-shadow(0 0 4px rgba(216,174,78,0.6));
+}
+.inventory-item:hover{ transform:scale(1.25); background:rgba(216,174,78,0.1); }
+
+.btn-restart-icon{
+  background:none; border:1px solid rgba(163,39,58,0.5); color:var(--blood);
+  border-radius:6px; padding:0.3rem 0.6rem; cursor:pointer; font-size:0.85rem; transition:.2s;
+}
+.btn-restart-icon:hover{ background:rgba(163,39,58,0.15); }
+
+/* ---------- ROOMS ---------- */
+#rooms-container{ max-width:960px; margin:0 auto; padding:1.4rem; }
+.room{ display:none; animation: fadeIn .5s ease; }
+.room.active{ display:block; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+.room-title{
+  font-family:var(--font-title);
+  font-size:1.6rem; color:var(--gold);
+  text-shadow:var(--glow-gold);
+  margin-bottom:0.3rem;
+  border-right:4px solid var(--gold);
+  padding-right:0.6rem;
+}
+.room-story{
+  color:var(--parchment); line-height:1.9; font-size:0.98rem;
+  background:var(--bg-panel);
+  border:1px solid rgba(216,174,78,0.12);
+  border-radius:10px;
+  padding:1rem 1.2rem;
+  margin-bottom:1rem;
+}
+.puzzle-progress-text{
+  font-family:var(--font-mono); font-size:0.78rem; color:var(--text-muted);
+  margin-bottom:0.8rem; letter-spacing:0.5px;
+}
+
+/* Scene = decorative + interactive visual area */
+.scene{
+  position:relative;
+  height:260px;
+  border-radius:12px;
+  border:1px solid var(--gold-soft);
+  margin-bottom:1.1rem;
+  overflow:hidden;
+  box-shadow: inset 0 0 50px rgba(0,0,0,0.7);
+}
+
+/* --- Library scene decor --- */
+.scene-library{ background: linear-gradient(180deg, #241609 0%, #150d06 100%); }
+.bookshelf-band{
+  position:absolute; left:0; right:0; bottom:0; height:110px;
+  background: repeating-linear-gradient(90deg,
+    #7a1f2b 0 16px, #5b1520 16px 20px,
+    #1e5631 20px 38px, #143a20 38px 42px,
+    #234a8a 42px 60px, #16305e 60px 64px,
+    #6b3a1f 64px 82px, #4a2814 82px 86px);
+  box-shadow: 0 -6px 18px rgba(0,0,0,0.5) inset;
+  border-top:4px solid #3a2412;
+}
+.fireplace-glow{
+  position:absolute; bottom:6px; left:14px; width:90px; height:70px;
+  background: radial-gradient(circle, rgba(255,138,76,0.8) 0%, rgba(255,90,20,0.25) 55%, transparent 75%);
+  border-radius:50%;
+  filter: blur(2px);
+}
+
+/* --- Music room scene decor --- */
+.scene-music{ background: linear-gradient(180deg, #1c1610 0%, #100c08 100%); }
+.piano-keys{
+  position:absolute; left:0; right:0; bottom:0; height:80px;
+  background: repeating-linear-gradient(90deg, #0c0c0c 0 24px, #efe6d2 24px 42px);
+  border-top:5px solid var(--gold-soft);
+  box-shadow: 0 -8px 16px rgba(0,0,0,0.55) inset;
+}
+.music-stand{
+  position:absolute; bottom:82px; left:38%;
+  width:0; height:0;
+  border-left:45px solid transparent;
+  border-right:45px solid transparent;
+  border-bottom:60px solid #3a2412;
+  opacity:0.85;
+}
+
+/* --- Gallery scene decor --- */
+.scene-gallery{ background: linear-gradient(180deg, #1a1410 0%, #110c09 100%); }
+.portrait-row{ position:absolute; bottom:20px; left:0; right:0; display:flex; justify-content:center; gap:2.2rem; }
+.portrait-frame{
+  width:76px; height:104px;
+  border:6px solid var(--gold);
+  border-radius:4px;
+  background: radial-gradient(circle at 50% 35%, #4a3a2a 0%, #1a1310 80%);
+  box-shadow: 0 0 14px rgba(216,174,78,0.35), inset 0 0 12px rgba(0,0,0,0.6);
+  position:relative;
+}
+.portrait-label{
+  position:absolute; bottom:-22px; left:0; right:0; text-align:center;
+  font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono);
+}
+
+/* --- Study / cellar scene decor --- */
+.scene-study{ background: linear-gradient(180deg, #1f150d 0%, #120b08 100%); }
+.wine-rack{
+  position:absolute; right:10px; top:20px; width:130px; height:150px;
+  background-image: radial-gradient(circle, #5c1a1a 40%, transparent 42%);
+  background-size: 30px 30px;
+  background-repeat: repeat;
+  border:4px solid #3a2412;
+  border-radius:6px;
+  opacity:0.9;
+}
+.desk-glow{
+  position:absolute; bottom:8px; left:14px; width:150px; height:60px;
+  background: radial-gradient(ellipse, rgba(216,174,78,0.25) 0%, transparent 70%);
+}
+
+.decor{
+  position:absolute; opacity:0.85; font-size:2.4rem;
+  pointer-events:none; animation: floaty 6s ease-in-out infinite;
+}
+
+.hotspot{
+  position:absolute;
+  background:rgba(0,0,0,0.4);
+  border:1px solid var(--gold-soft);
+  border-radius:50%;
+  width:50px; height:50px;
+  font-size:1.5rem;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  filter: drop-shadow(0 0 6px rgba(216,174,78,0.55));
+  transition: transform .2s, box-shadow .2s;
+  z-index:5;
+}
+.hotspot:hover{ transform:scale(1.15); box-shadow:0 0 20px rgba(216,174,78,0.7); }
+.hotspot.collected{ opacity:0.3; filter:grayscale(1); cursor:default; }
+.hotspot.collected::after{ content:"✔"; position:absolute; font-size:0.9rem; top:-6px; left:-6px; color:var(--gold); }
+
+/* Puzzle blocks (dynamically rendered per room) */
+.puzzle-block{
+  background:var(--bg-panel-light);
+  border:1px solid rgba(216,174,78,0.15);
+  border-radius:10px;
+  padding:1rem 1.2rem;
+  margin-bottom:0.9rem;
+  transition: border-color .3s;
+}
+.puzzle-block.already-solved{ border-color: var(--gold); opacity:0.75; }
+.puzzle-prompt{ line-height:1.85; margin-bottom:0.7rem; font-size:0.97rem; }
+.puzzle-row{ display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; }
+.password-input{
+  flex:1; min-width:180px;
+  background:#160f0a;
+  border:1px solid rgba(216,174,78,0.4);
+  color:var(--gold);
+  font-family:var(--font-mono);
+  font-size:1.05rem;
+  text-align:center;
+  padding:0.6rem;
+  border-radius:6px;
+}
+.password-input:focus{ outline:none; box-shadow:0 0 12px rgba(216,174,78,0.6); }
+.password-input:disabled{ opacity:0.5; }
+
+.btn-submit{
+  background:var(--gold); color:#241505; border:none;
+  font-weight:700; font-family:var(--font-ui);
+  padding:0.65rem 1.3rem; border-radius:6px; cursor:pointer; transition:.2s;
+}
+.btn-submit:hover{ box-shadow:0 0 18px rgba(216,174,78,0.7); transform:translateY(-1px); }
+.btn-submit:disabled{ opacity:0.4; cursor:not-allowed; }
+
+.btn-hint-open{
+  background:none; border:1px solid var(--ember); color:var(--ember);
+  padding:0.6rem 1rem; border-radius:6px; cursor:pointer; font-family:var(--font-ui); transition:.2s;
+}
+.btn-hint-open:hover{ background:rgba(255,138,76,0.12); }
+
+.password-feedback{ margin-top:0.6rem; min-height:1.2rem; font-size:0.9rem; }
+.feedback-error{ color:var(--blood); }
+.feedback-success{ color:var(--gold); }
+
+/* ---------- MODAL ---------- */
+#modal-overlay{
+  position:fixed; inset:0; z-index:300;
+  background:rgba(8,4,2,0.85);
+  display:flex; align-items:center; justify-content:center;
+  padding:1.2rem; backdrop-filter: blur(3px);
+  transition: opacity .25s ease;
+}
+#modal-overlay.hidden{ opacity:0; pointer-events:none; }
+#modal-content{
+  background:var(--bg-panel);
+  border:1px solid var(--gold-soft);
+  box-shadow: var(--glow-gold);
+  border-radius:12px;
+  padding:1.6rem;
+  max-width:500px; width:100%;
+  max-height:80vh; overflow-y:auto;
+  line-height:1.85;
+}
+#modal-content h2,#modal-content h3{ color:var(--gold); margin-top:0; font-family:var(--font-title); }
+.win-title{ color:var(--gold) !important; }
+.gameover-title{ color:var(--blood) !important; }
+.hint-text{
+  background:rgba(255,138,76,0.08);
+  border-right:3px solid var(--ember);
+  padding:0.5rem 0.7rem; border-radius:6px; margin:0.5rem 0; font-size:0.92rem;
+}
+.hint-text.muted{ color:var(--text-muted); border-right-color:var(--text-muted); }
+.btn-close-modal{
+  margin-top:1rem;
+  background:none; border:1px solid var(--text-muted); color:var(--parchment);
+  padding:0.5rem 1rem; border-radius:6px; cursor:pointer; width:100%;
+}
+.btn-close-modal:hover{ border-color:var(--gold); color:var(--gold); }
+.btn-hint{
+  background:var(--ember); color:#2b1400; border:none; font-weight:700;
+  padding:0.6rem 1rem; border-radius:6px; cursor:pointer; margin-top:0.4rem; width:100%;
+}
+.btn-restart{
+  background:var(--gold); color:#241505; border:none; font-weight:700;
+  padding:0.7rem 1.4rem; border-radius:8px; cursor:pointer; margin-top:0.8rem; width:100%; font-size:1rem;
+}
+
+/* ---------- TOASTS ---------- */
+#toast-container{
+  position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%);
+  z-index:400; display:flex; flex-direction:column; gap:0.5rem; align-items:center;
+}
+.toast{
+  background:rgba(216,174,78,0.12);
+  border:1px solid var(--gold);
+  color:var(--gold);
+  padding:0.6rem 1.1rem; border-radius:8px; font-size:0.9rem;
+  box-shadow:0 0 15px rgba(216,174,78,0.4);
+  animation: toastIn .3s ease;
+}
+@keyframes toastIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+.toast-out{ opacity:0; transform:translateY(10px); transition:.4s; }
+
+footer{ text-align:center; color:var(--text-muted); font-size:0.75rem; padding:2rem 1rem; }
+
+@media (max-width:600px){
+  .scene{ height:220px; }
+  .hotspot{ width:42px; height:42px; font-size:1.25rem; }
+  .portrait-frame{ width:58px; height:82px; }
+  .portrait-row{ gap:1rem; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- =========================================================
+       START SCREEN
+  ========================================================== -->
+  <div id="start-screen">
+    <div class="subtitle">// אחוזת קפלינגר — הכניסה חסומה מהשעה 23:00 //</div>
+    <h1>🕯️ אחוזת הרוזן</h1>
+    <p class="lore">
+      נקלעתם לאחוזה עתיקה ונטושה בזמן סיור לילי, ובטעות ננעלתם בפנים.
+      השומר ינעל את השער הראשי בעוד <strong>60 דקות בדיוק</strong>.
+      ברחבי האחוזה מפוזרות חידות שהותיר הרוזן האחרון — היגיון, ידע כללי,
+      ותשומת לב לפרטים הקטנים ביותר.<br><br>
+      פתרו את כל החידות בכל חדר לפני שהזמן אוזל, ותצליחו לצאת מבעד לשער
+      לפני שהוא ננעל לצמיתות.
+    </p>
+    <button class="btn-neon" id="start-btn">🕯️ התחילו לחקור</button>
+  </div>
+
+  <!-- =========================================================
+       HEADER
+  ========================================================== -->
+  <header id="game-header">
+    <div class="logo">🏰 אחוזת קפלינגר</div>
+    <div class="progress-dots">
+      <span class="progress-dot" data-index="0"></span>
+      <span class="progress-dot" data-index="1"></span>
+      <span class="progress-dot" data-index="2"></span>
+      <span class="progress-dot" data-index="3"></span>
+    </div>
+    <div id="timer" class="timer">60:00</div>
+    <div class="header-right">
+      <div id="inventory-bar" class="inventory-bar"></div>
+      <button class="btn-restart-icon" id="reset-btn" title="אתחל משחק">🔄 אתחול</button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       ROOMS  (story + scene are static; puzzles are rendered by JS
+       from the ROOMS config so you only ever edit the config)
+  ========================================================== -->
+  <main id="rooms-container">
+
+    <!-- ============ ROOM 0 : THE ANCIENT LIBRARY ============ -->
+    <section class="room" data-room="0">
+      <h2 class="room-title">📚 הספרייה העתיקה</h2>
+      <div class="room-story">
+        אורות נרות מהבהבים מאירים קירות עמוסי ספרים ישנים. על שולחן העץ הכבד
+        מונחת חידה שכתב הרוזן בכתב ידו, ולצידה ארבעה כרכים צבעוניים שנראים
+        ממוקמים שם בכוונה רבה מדי כדי להיות מקריים.
+      </div>
+      <div class="scene scene-library">
+        <div class="fireplace-glow flicker"></div>
+        <div class="bookshelf-band"></div>
+        <div class="decor" style="top:8%; left:6%;">🕯️</div>
+      </div>
+      <div class="puzzle-progress-text" data-room="0"></div>
+      <div class="puzzles-container" data-room="0"></div>
+    </section>
+
+    <!-- ============ ROOM 1 : THE MUSIC ROOM ============ -->
+    <section class="room" data-room="1">
+      <h2 class="room-title">🎹 חדר המוזיקה</h2>
+      <div class="room-story">
+        פסנתר כנף עתיק עומד באמצע החדר, מכוסה שכבת אבק דקה. על מעמד התווים
+        מונח פתק ישן עם סימנים מוזרים, ולידו כרזת תזמורת קרועה למחצה.
+      </div>
+      <div class="scene scene-music">
+        <div class="music-stand"></div>
+        <div class="piano-keys"></div>
+        <div class="decor" style="top:12%; left:60%;">🎼</div>
+      </div>
+      <div class="puzzle-progress-text" data-room="1"></div>
+      <div class="puzzles-container" data-room="1"></div>
+    </section>
+
+    <!-- ============ ROOM 2 : THE PORTRAIT GALLERY ============ -->
+    <section class="room" data-room="2">
+      <h2 class="room-title">🖼️ גלריית הדיוקנאות</h2>
+      <div class="room-story">
+        שורת דיוקנאות של בני משפחת הרוזן תלויה על הקיר, מביטה בכם באור עמום.
+        מתחת לכל דיוקן חרוטה אמירה קצרה. בקצה הגלריה תלוי ציור מפורסם
+        שהרוזן אהב לספר עליו סיפורים.
+      </div>
+      <div class="scene scene-gallery">
+        <div class="portrait-row">
+          <div class="portrait-frame"><span class="portrait-label">האב</span></div>
+          <div class="portrait-frame"><span class="portrait-label">האם</span></div>
+          <div class="portrait-frame"><span class="portrait-label">הבן</span></div>
+        </div>
+      </div>
+      <div class="puzzle-progress-text" data-room="2"></div>
+      <div class="puzzles-container" data-room="2"></div>
+    </section>
+
+    <!-- ============ ROOM 3 : THE COUNT'S STUDY (final) ============ -->
+    <section class="room" data-room="3">
+      <h2 class="room-title">🗝️ חדר העבודה של הרוזן</h2>
+      <div class="room-story">
+        מבין כל החדרים באחוזה, זהו החדר האחרון שנותר לגלות.
+        פינה חשוכה מסתירה שולחן עתיק עמוס במסמכים.
+        תעודת הירושה של הרוזן מונחת עליו, חתומה וחתומה שוב.
+        חשכה משתררת בחוץ, והשומר עומד לנעול את השער.
+      </div>
+      <div class="scene scene-study">
+        <div class="wine-rack"></div>
+        <div class="desk-glow flicker"></div>
+        <div class="decor" style="top:10%; left:15%;">📜</div>
+      </div>
+      <div class="puzzle-progress-text" data-room="3"></div>
+      <div class="puzzles-container" data-room="3"></div>
+    </section>
+
+  </main>
+
+  <footer>נבנה עם ❤️ — Vanilla HTML / CSS / JS. קל להרחבה, ראה הערות בקוד.</footer>
+
+  <!-- =========================================================
+       MODAL
+  ========================================================== -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-content"></div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!--
+    HTML5 Audio placeholders. Drop your own files into an /assets folder
+    and point src at them to enable custom SFX. If missing, the game
+    automatically falls back to a generated WebAudio beep.
+  -->
+  <audio id="sfx-success" src="assets/success.mp3" preload="none"></audio>
+  <audio id="sfx-error" src="assets/error.mp3" preload="none"></audio>
+
+</div>
+
+<script>
+/* ================================================================================
+   MANSION ESCAPE ROOM — main script
+   ================================================================================
+   TABLE OF CONTENTS:
+   [1] CONFIG           -> ALL puzzle/room content lives here. Edit freely.
+   [2] STATE             -> single source of truth for the whole game
+   [3] AUDIO             -> sound effects (file + WebAudio fallback)
+   [4] RENDER FUNCTIONS   -> DOM updates (inventory, hotspots, puzzles, timer)
+   [5] GAME LOGIC         -> answer checking, hints, penalties, win/lose
+   [6] EVENT WIRING       -> DOMContentLoaded listeners
+   ================================================================================ */
+
+
+/* ========================= [1] CONFIG ========================================= */
+/*
+  HOW TO ADD / CHANGE A PUZZLE:
+  - Find the room in the ROOMS array below (rooms are 0-indexed).
+  - Each room has a `puzzles` array. Each puzzle needs:
+      prompt   : the riddle/question text shown to the player (HTML allowed)
+      accepted : array of acceptable answers (any variant spelling works)
+      hints    : exactly 3 strings, revealed one at a time (costs 5 min each)
+      placeholder (optional): input placeholder text
+  - To add a whole new room: copy a room block, add a new <section class="room" ...>
+    in the HTML above with a matching data-room index, and add 3 dots would need
+    updating in the header's .progress-dots (currently 4 dots for 4 rooms).
+  - To add/change hidden objects in a scene, edit that room's `hotspots` array.
+*/
+const ROOMS = [
+  { // ---------------- ROOM 0 : THE ANCIENT LIBRARY ----------------
+    id: 0,
+    title: "הספרייה העתיקה",
+    puzzles: [
+      {
+        prompt: "על שולחן הספרייה מונחת חידה ישנה שכתב הרוזן:<br>" +
+          "<em>\"יש לי ערים אך אין בי בתים, יש לי יערות אך אין בי עצים, " +
+          "יש לי נהרות אך אין בי מים. מה אני?\"</em>",
+        accepted: ["מפה", "מפה גיאוגרפית", "מפת עולם"],
+        placeholder: "מה אני?",
+        hints: [
+          "תחשבו על משהו שתולים על קיר, או פותחים כדי לתכנן טיול.",
+          "עשוי מנייר, ומראה איפה נמצאים דברים — בלי להכיל אותם ממש.",
+          "התשובה: מפה"
+        ]
+      },
+      {
+        prompt: "ארבעה כרכים צבעוניים בספרייה מכילים שאלות ידע כללי. " +
+          "לחצו עליהם (מסומנים בסצנה למעלה), גלו את סדר הצבעים הרשום על גב המדף — " +
+          "<strong>אדום ← ירוק ← כחול ← סגול</strong> — והזינו את התשובות ברצף כמספר אחד בן 4 ספרות.",
+        accepted: ["7164"],
+        placeholder: "קוד בן 4 ספרות",
+        hints: [
+          "ספרו את היבשות, את המספר האטומי, את הצורה הגאומטרית ואת כלי הנגינה בקפידה.",
+          "התשובות הן, לפי הסדר: 7, 1, 6, 4.",
+          "התשובה: 7164"
+        ]
+      }
+    ],
+    hotspots: [
+      { id:"book_red", icon:"📕", top:"58%", left:"14%", type:"info", name:"כרך אדום",
+        detail:"על הכריכה כתוב: \"כמה יבשות יש בעולם?\"" },
+      { id:"book_green", icon:"📗", top:"55%", left:"32%", type:"info", name:"כרך ירוק",
+        detail:"על הכריכה כתוב: \"מהו המספר האטומי של יסוד המימן (H) בטבלה המחזורית?\"" },
+      { id:"book_blue", icon:"📘", top:"60%", left:"50%", type:"info", name:"כרך כחול",
+        detail:"על הכריכה כתוב: \"כמה צלעות יש למשושה (הקסגון)?\"" },
+      { id:"book_purple", icon:"📓", top:"56%", left:"68%", type:"info", name:"כרך סגול",
+        detail:"על הכריכה כתוב: \"כמה מיתרים יש לכינור קלאסי?\"" },
+      { id:"magnifying_glass", icon:"🔍", top:"20%", left:"80%", type:"pickup",
+        name:"זכוכית מגדלת ישנה",
+        detail:"מצאתם זכוכית מגדלת ישנה מוטמנת מאחורי הספרים. אולי תעזור לכם להבחין בפרטים זעירים בהמשך האחוזה." },
+      { id:"shelf_trap", icon:"🗄️", top:"30%", left:"38%", type:"trap",
+        name:"ארון ספרים רעוע",
+        detail:"ניסיתם למשוך ספר תקוע וכל המדף קרס ברעש אדיר! מישהו בטח שמע.", penalty:45 }
+    ]
+  },
+
+  { // ---------------- ROOM 1 : THE MUSIC ROOM ----------------
+    id: 1,
+    title: "חדר המוזיקה",
+    puzzles: [
+      {
+        prompt: "התווים הכתובים על הפתק הם: <strong>דו, דו, סול, סול, לה, לה, סול</strong>. " +
+          "איזה תו הגיוני להמשיך אחריהם? (זהו לחן ילדים מוכר מאוד)",
+        accepted: ["פה", "fa", "פה (fa)"],
+        placeholder: "התו הבא",
+        hints: [
+          "זהו לחן ילדים מוכר מאוד ברוב שפות העולם.",
+          "זהו השיר \"כוכב כוכב הקטן\" (Twinkle Twinkle) — חשבו על המנגינה בראש.",
+          "התשובה: פה"
+        ]
+      },
+      {
+        prompt: "על כרזת התזמורת מופיעה סדרת מספרים דהויה: " +
+          "<strong>1, 1, 2, 3, 5, 8, ...</strong> — מהו המספר הבא בסדרה?",
+        accepted: ["13"],
+        placeholder: "המספר הבא",
+        hints: [
+          "כל מספר בסדרה הוא סכום של שני המספרים שקדמו לו.",
+          "8 + 5 = ?",
+          "התשובה: 13"
+        ]
+      }
+    ],
+    hotspots: [
+      { id:"violin", icon:"🎻", top:"18%", left:"18%", type:"info", name:"כינור ישן",
+        detail:"כינור עתיק תלוי על הקיר, מיתריו קרועים מזמן. חבל, זה כנראה היה כלי יפה." },
+      { id:"gramophone", icon:"📯", top:"22%", left:"75%", type:"info", name:"גרמופון",
+        detail:"מכשיר השמעה ישן עם קרן נחושת מוריקה. אין תקליט בפנים." },
+      { id:"piano_trap", icon:"🎹", top:"70%", left:"48%", type:"trap", name:"צרור מקשים קלוקל",
+        detail:"לחצתם בטעות על צרור מקשים לא מכוון שגרם לרעש מחריד!", penalty:30 }
+    ]
+  },
+
+  { // ---------------- ROOM 2 : THE PORTRAIT GALLERY ----------------
+    id: 2,
+    title: "גלריית הדיוקנאות",
+    puzzles: [
+      {
+        prompt: "שלושה דיוקנאות תלויים זה לצד זה — האב, האם והבן. לחצו עליהם כדי לקרוא מה כתוב מתחת לכל אחד. " +
+          "<strong>רק דיוקן אחד אומר אמת.</strong> מי?",
+        accepted: ["האב", "אבא", "אבי המשפחה"],
+        placeholder: "מי דובר האמת?",
+        hints: [
+          "רק אמירה אחת מתוך השלוש נכונה. נסו כל אפשרות בנפרד ובידקו שהיא לא סותרת את עצמה.",
+          "התחילו מהנחה שהאב דובר אמת ובדקו אם זה מתיישב עם דברי האם והבן.",
+          "התשובה: האב"
+        ]
+      },
+      {
+        prompt: "הציור המפורסם בקצה הגלריה מתאר דמות עם חיוך מסתורי. מי צייר אותו?",
+        accepted: ["דה וינצי", "ליאונרדו דה וינצי", "לאונרדו דה וינצי", "וינצי", "ליאונרדו דה-וינצי"],
+        placeholder: "שם הצייר",
+        hints: [
+          "הוא היה גם ממציא ואיש מדע איטלקי מתקופת הרנסנס.",
+          "שם משפחתו קשור לעיירה איטלקית קטנה בשם וינצ'י.",
+          "התשובה: ליאונרדו דה וינצי"
+        ]
+      }
+    ],
+    hotspots: [
+      { id:"portrait_father", icon:"🖼️", top:"25%", left:"30%", type:"info", name:"דיוקן האב",
+        detail:"חרוט מתחתיו: <em>\"הבן משקר.\"</em>" },
+      { id:"portrait_mother", icon:"🖼️", top:"25%", left:"48%", type:"info", name:"דיוקן האם",
+        detail:"חרוט מתחתיה: <em>\"אני דוברת אמת.\"</em>" },
+      { id:"portrait_son", icon:"🖼️", top:"25%", left:"66%", type:"info", name:"דיוקן הבן",
+        detail:"חרוט מתחתיו: <em>\"אבי ואני שנינו דוברי אמת.\"</em>" },
+      { id:"famous_painting", icon:"🎨", top:"18%", left:"85%", type:"info", name:"הציור המפורסם",
+        detail:"ציור שמן מרשים של דמות עם חיוך שקט ומסתורי. הרוזן טען תמיד שהמקור תלוי אצלו, לא במוזיאון." },
+      { id:"tiny_detail", icon:"🔎", top:"55%", left:"30%", type:"locked-info", name:"פרט זעיר על מסגרת דיוקן האב",
+        requiredItem:"magnifying_glass",
+        detail:"מבעד לזכוכית המגדלת אתם מבחינים בסדק דק מתחת לדיוקן האב, " +
+          "כאילו מישהו ניסה להסתיר שם משהו. אולי דווקא הוא חשוב יותר משנראה במבט ראשון.",
+        lockedMessage:"יש שם משהו זעיר מדי לראות בעין בלתי מזוינת. אולי כלי הגדלה יעזור." },
+      { id:"curtain_trap", icon:"🪟", top:"70%", left:"70%", type:"trap", name:"וילון עתיק",
+        detail:"משכתם וילון כבד וענן אבק היכה בפניכם — התעכבתם דקה יקרה בשיעול.", penalty:40 }
+    ]
+  },
+
+  { // ---------------- ROOM 3 : THE COUNT'S STUDY (final) ----------------
+    id: 3,
+    title: "חדר העבודה של הרוזן",
+    puzzles: [
+      {
+        prompt: "במרתף היין שנראה מפינת החדר יש 3 ארגזים. בארגז הראשון יש כפול מהכמות שבשני, " +
+          "ובשני יש 4 בקבוקים פחות מהשלישי. בסך הכול יש 32 בקבוקים. " +
+          "<strong>כמה בקבוקים יש בארגז השלישי?</strong>",
+        accepted: ["11"],
+        placeholder: "מספר בקבוקים",
+        hints: [
+          "הגדירו x = כמות הבקבוקים בארגז השלישי, ובנו משוואה מהמידע הנתון.",
+          "המשוואה: 2(x-4) + (x-4) + x = 32",
+          "התשובה: 11"
+        ]
+      },
+      {
+        prompt: "קראו שוב, בעיון, את פסקת הפתיחה של החדר הזה (למעלה). " +
+          "משהו חשוב מסתתר בתוכה — לא במה שכתוב, אלא <em>באיך</em> שהיא כתובה.",
+        accepted: ["מפתח"],
+        placeholder: "המילה הנסתרת",
+        hints: [
+          "שימו לב לאות הראשונה של כל אחד מ-4 המשפטים בפתיחת החדר.",
+          "האותיות הראשונות, לפי הסדר, הן: מ... פ... ת... ח...",
+          "התשובה: מפתח"
+        ]
+      }
+    ],
+    hotspots: [
+      { id:"wine_rack_note", icon:"🍷", top:"20%", left:"78%", type:"info", name:"מתקן היין",
+        detail:"ארגזי עץ ישנים, מסודרים בשורה מסודרת להפליא. מישהו רצה שתשימו לב אליהם." },
+      { id:"will_document", icon:"📜", top:"55%", left:"20%", type:"info", name:"צוואת הרוזן",
+        detail:"מסמך חתום בשעווה אדומה. רוב הטקסט דהוי מכדי לקרוא, מלבד המילים \"לבן/בת שיפתרו הכול\"." },
+      { id:"safe_trap", icon:"🗝️", top:"65%", left:"55%", type:"trap", name:"כספת ישנה",
+        detail:"ניסיתם לפתוח כספת ישנה בלי קוד וגרמתם לה לצפצף באזעקה חדה!", penalty:50 }
+    ]
+  }
+];
+
+const GAME_DURATION_SECONDS = 60 * 60;   // 60-minute countdown. Change here to adjust game length.
+const HINT_PENALTY_SECONDS = 5 * 60;     // 5-minute penalty per hint. Change here to adjust cost.
+const WRONG_GUESS_PENALTY_SECONDS = 15;  // small penalty per wrong answer (set to 0 to disable)
+
+
+/* ========================= [2] STATE =========================================== */
+
+const state = {
+  currentRoomIndex: 0,
+  timeRemaining: GAME_DURATION_SECONDS,
+  timerId: null,
+  inventory: [],           // array of hotspot ids collected
+  solved: [false, false, false, false],
+  audioCtx: null
+};
+
+function qs(sel, ctx) { return (ctx || document).querySelector(sel); }
+function qsa(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
+
+function normalize(str) {
+  return String(str).trim().toLowerCase()
+    .replace(/["'׳״\.\-]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function findHotspotById(id) {
+  for (const room of ROOMS) {
+    const found = room.hotspots.find(h => h.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+
+/* ========================= [3] AUDIO ============================================ */
+
+function initAudio() {
+  if (!state.audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) state.audioCtx = new AC();
+  }
+}
+
+function beep(freq, duration, type, vol) {
+  try {
+    initAudio();
+    if (!state.audioCtx) return;
+    const ctx = state.audioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.15;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    osc.stop(ctx.currentTime + duration + 0.02);
+  } catch (e) { /* audio unsupported — fail silently */ }
+}
+
+function playSuccessSound() {
+  const el = qs("#sfx-success");
+  if (el) el.play().catch(() => {});
+  beep(880, 0.12, "sine", 0.15);
+  setTimeout(() => beep(1320, 0.18, "sine", 0.15), 120);
+}
+
+function playErrorSound() {
+  const el = qs("#sfx-error");
+  if (el) el.play().catch(() => {});
+  beep(160, 0.3, "sawtooth", 0.2);
+}
+
+
+/* ========================= [4] RENDER FUNCTIONS ================================= */
+
+function renderInventory() {
+  const bar = qs("#inventory-bar");
+  bar.innerHTML = "";
+  state.inventory.forEach(itemId => {
+    const item = findHotspotById(itemId);
+    if (!item) return;
+    const div = document.createElement("div");
+    div.className = "inventory-item";
+    div.title = item.name;
+    div.textContent = item.icon;
+    div.addEventListener("click", () => openModal("<h3>" + item.icon + " " + item.name + "</h3><p>" + item.detail + "</p>"));
+    bar.appendChild(div);
+  });
+}
+
+function renderHotspots(roomIndex) {
+  const room = ROOMS[roomIndex];
+  const container = qs('.room[data-room="' + roomIndex + '"] .scene');
+  qsa(".hotspot", container).forEach(h => h.remove());
+  room.hotspots.forEach(h => {
+    const btn = document.createElement("button");
+    btn.className = "hotspot";
+    btn.style.top = h.top;
+    btn.style.left = h.left;
+    btn.textContent = h.icon;
+    btn.setAttribute("aria-label", h.name || "");
+    btn.type = "button";
+    if (h.type === "pickup" && state.inventory.includes(h.id)) {
+      btn.classList.add("collected");
+      btn.disabled = true;
+    }
+    btn.addEventListener("click", () => handleHotspotClick(roomIndex, h.id));
+    container.appendChild(btn);
+  });
+}
+
+function renderPuzzles(roomIndex) {
+  const room = ROOMS[roomIndex];
+  const container = qs('.puzzles-container[data-room="' + roomIndex + '"]');
+  container.innerHTML = "";
+  room.puzzles.forEach((p, j) => {
+    const block = document.createElement("div");
+    block.className = "puzzle-block" + (p.solved ? " already-solved" : "");
+    block.dataset.room = roomIndex;
+    block.dataset.puzzle = j;
+    block.innerHTML =
+      '<div class="puzzle-prompt">' + p.prompt + "</div>" +
+      '<div class="puzzle-row">' +
+        '<input type="text" class="password-input" data-room="' + roomIndex + '" data-puzzle="' + j + '" ' +
+          'placeholder="' + (p.placeholder || "הזינו תשובה") + '" ' + (p.solved ? "disabled" : "") + '>' +
+        '<button type="button" class="btn-submit" data-room="' + roomIndex + '" data-puzzle="' + j + '" ' + (p.solved ? "disabled" : "") + '>✔ בדקו</button>' +
+        '<button type="button" class="btn-hint-open" data-room="' + roomIndex + '" data-puzzle="' + j + '">💡 רמז</button>' +
+      "</div>" +
+      '<div class="password-feedback" data-room="' + roomIndex + '" data-puzzle="' + j + '">' + (p.solved ? "✅ נפתר" : "") + "</div>";
+    container.appendChild(block);
+  });
+
+  qsa(".btn-submit", container).forEach(btn => {
+    btn.addEventListener("click", () => submitAnswer(Number(btn.dataset.room), Number(btn.dataset.puzzle)));
+  });
+  qsa(".password-input", container).forEach(inp => {
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter") submitAnswer(Number(inp.dataset.room), Number(inp.dataset.puzzle));
+    });
+  });
+  qsa(".btn-hint-open", container).forEach(btn => {
+    btn.addEventListener("click", () => showHintModal(Number(btn.dataset.room), Number(btn.dataset.puzzle)));
+  });
+
+  updatePuzzleProgress(roomIndex);
+}
+
+function updatePuzzleProgress(roomIndex) {
+  const room = ROOMS[roomIndex];
+  const solvedCount = room.puzzles.filter(p => p.solved).length;
+  const el = qs('.puzzle-progress-text[data-room="' + roomIndex + '"]');
+  if (el) el.textContent = solvedCount + " / " + room.puzzles.length + " חידות נפתרו בחדר זה";
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timeRemaining / 60);
+  const s = state.timeRemaining % 60;
+  const text = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  const el = qs("#timer");
+  el.textContent = text;
+  el.classList.toggle("low-time", state.timeRemaining <= 300);
+}
+
+function updateProgressDots() {
+  qsa(".progress-dot").forEach((dot, i) => {
+    dot.classList.toggle("dot-solved", state.solved[i]);
+    dot.classList.toggle("dot-active", i === state.currentRoomIndex);
+  });
+}
+
+function showToast(text) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = text;
+  qs("#toast-container").appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add("toast-out");
+    setTimeout(() => toast.remove(), 400);
+  }, 2500);
+}
+
+function openModal(html) {
+  qs("#modal-content").innerHTML = html + '<button class="btn-close-modal" onclick="closeModal()">סגור ✖</button>';
+  qs("#modal-overlay").classList.remove("hidden");
+}
+function closeModal() {
+  qs("#modal-overlay").classList.add("hidden");
+}
+
+function triggerShake() {
+  const app = qs("#app");
+  app.classList.add("shake");
+  setTimeout(() => app.classList.remove("shake"), 500);
+}
+
+function flashTimerPenalty() {
+  const el = qs("#timer");
+  el.classList.add("penalty-flash");
+  setTimeout(() => el.classList.remove("penalty-flash"), 600);
+}
+
+
+/* ========================= [5] GAME LOGIC ======================================= */
+
+function handleHotspotClick(roomIndex, hotspotId) {
+  const room = ROOMS[roomIndex];
+  const h = room.hotspots.find(x => x.id === hotspotId);
+  if (!h) return;
+
+  if (h.type === "pickup") {
+    if (!state.inventory.includes(h.id)) {
+      state.inventory.push(h.id);
+      renderInventory();
+      showToast("🎒 פריט חדש התקבל: " + h.name);
+      renderHotspots(roomIndex);
+    }
+    openModal("<h3>" + h.icon + " " + h.name + "</h3><p>" + h.detail + "</p>");
+  } else if (h.type === "info") {
+    openModal("<h3>" + h.icon + " " + h.name + "</h3><p>" + h.detail + "</p>");
+  } else if (h.type === "locked-info") {
+    if (state.inventory.includes(h.requiredItem)) {
+      openModal("<h3>" + h.icon + " " + h.name + "</h3><p>" + h.detail + "</p>");
+    } else {
+      openModal("<h3>" + h.icon + " " + h.name + "</h3><p>" + h.lockedMessage + "</p>");
+    }
+  } else if (h.type === "trap") {
+    triggerShake();
+    playErrorSound();
+    penalizeTime(h.penalty || 60);
+    openModal("<h3>⚠️ " + h.name + "</h3><p>" + h.detail + "</p>");
+  }
+}
+
+function penalizeTime(seconds) {
+  state.timeRemaining = Math.max(0, state.timeRemaining - seconds);
+  updateTimerDisplay();
+  flashTimerPenalty();
+  if (state.timeRemaining <= 0) {
+    clearInterval(state.timerId);
+    gameOver();
+  }
+}
+
+function tick() {
+  state.timeRemaining--;
+  updateTimerDisplay();
+  if (state.timeRemaining <= 0) {
+    state.timeRemaining = 0;
+    updateTimerDisplay();
+    clearInterval(state.timerId);
+    gameOver();
+  }
+}
+
+function startTimer() {
+  if (state.timerId) return;
+  state.timerId = setInterval(tick, 1000);
+}
+
+function showHintModal(roomIndex, puzzleIndex) {
+  const puzzle = ROOMS[roomIndex].puzzles[puzzleIndex];
+  const used = puzzle.hintsUsed || 0;
+  let html = "<h3>💡 רמזים</h3>";
+  for (let i = 0; i < used; i++) {
+    html += '<p class="hint-text">רמז ' + (i + 1) + ": " + puzzle.hints[i] + "</p>";
+  }
+  if (used < puzzle.hints.length) {
+    html += '<button class="btn-hint" onclick="useHint(' + roomIndex + "," + puzzleIndex + ')">קבל רמז נוסף (⏱️ -5 דקות)</button>';
+  } else {
+    html += '<p class="hint-text muted">אין עוד רמזים לחידה הזו.</p>';
+  }
+  openModal(html);
+}
+
+function useHint(roomIndex, puzzleIndex) {
+  const puzzle = ROOMS[roomIndex].puzzles[puzzleIndex];
+  puzzle.hintsUsed = puzzle.hintsUsed || 0;
+  if (puzzle.hintsUsed >= puzzle.hints.length) return;
+  puzzle.hintsUsed++;
+  penalizeTime(HINT_PENALTY_SECONDS);
+  showHintModal(roomIndex, puzzleIndex);
+}
+
+function submitAnswer(roomIndex, puzzleIndex) {
+  const input = qs('.password-input[data-room="' + roomIndex + '"][data-puzzle="' + puzzleIndex + '"]');
+  const feedback = qs('.password-feedback[data-room="' + roomIndex + '"][data-puzzle="' + puzzleIndex + '"]');
+  const puzzle = ROOMS[roomIndex].puzzles[puzzleIndex];
+  const val = normalize(input.value);
+  const correct = puzzle.accepted.some(acc => normalize(acc) === val);
+
+  if (correct) {
+    puzzle.solved = true;
+    playSuccessSound();
+    input.disabled = true;
+    qs('.btn-submit[data-room="' + roomIndex + '"][data-puzzle="' + puzzleIndex + '"]').disabled = true;
+    const block = qs('.puzzle-block[data-room="' + roomIndex + '"][data-puzzle="' + puzzleIndex + '"]');
+    block.classList.add("solved-glow");
+    feedback.textContent = "✅ נכון! החידה נפתרה.";
+    feedback.classList.remove("feedback-error");
+    feedback.classList.add("feedback-success");
+    updatePuzzleProgress(roomIndex);
+    checkRoomComplete(roomIndex);
+  } else {
+    triggerShake();
+    playErrorSound();
+    if (WRONG_GUESS_PENALTY_SECONDS > 0) penalizeTime(WRONG_GUESS_PENALTY_SECONDS);
+    feedback.textContent = "❌ לא מדויק. נסו שוב.";
+    feedback.classList.remove("feedback-success");
+    feedback.classList.add("feedback-error");
+    setTimeout(() => feedback.classList.remove("feedback-error"), 800);
+  }
+}
+
+function checkRoomComplete(roomIndex) {
+  const room = ROOMS[roomIndex];
+  const allSolved = room.puzzles.every(p => p.solved);
+  if (allSolved && !state.solved[roomIndex]) {
+    state.solved[roomIndex] = true;
+    const section = qs('.room[data-room="' + roomIndex + '"]');
+    section.classList.add("solved-glow");
+    updateProgressDots();
+    showToast("🚪 החדר נפתר במלואו!");
+    setTimeout(() => {
+      section.classList.remove("solved-glow");
+      if (roomIndex + 1 < ROOMS.length) {
+        showRoom(roomIndex + 1);
+      } else {
+        winGame();
+      }
+    }, 1500);
+  }
+}
+
+function showRoom(index) {
+  qsa(".room").forEach(r => r.classList.remove("active"));
+  qs('.room[data-room="' + index + '"]').classList.add("active");
+  state.currentRoomIndex = index;
+  renderHotspots(index);
+  renderPuzzles(index);
+  updateProgressDots();
+}
+
+function winGame() {
+  clearInterval(state.timerId);
+  const m = Math.floor(state.timeRemaining / 60);
+  const s = state.timeRemaining % 60;
+  openModal(
+    '<h2 class="win-title">🎉 הצלחתם לצאת מהאחוזה!</h2>' +
+    "<p>הגעתם לשער הראשי עם <strong>" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "</strong> שנותרו על השעון.</p>" +
+    "<p>השומר נדהם לראות אתכם יוצאים בזמן. ירושת הרוזן כולה — שלכם.</p>" +
+    '<button class="btn-restart" onclick="restartGame()">🔄 שחקו שוב</button>'
+  );
+}
+
+function gameOver() {
+  clearInterval(state.timerId);
+  openModal(
+    '<h2 class="gameover-title">🔒 השער ננעל</h2>' +
+    "<p>השומר נעל את השער הראשי. תצטרכו לבלות עוד לילה אחד באחוזה הנטושה...</p>" +
+    '<button class="btn-restart" onclick="restartGame()">🔄 נסו שוב</button>'
+  );
+}
+
+function restartGame() {
+  location.reload();
+}
+
+function startGame() {
+  qs("#start-screen").classList.add("hidden");
+  initAudio();
+  startTimer();
+  showRoom(0);
+}
+
+
+/* ========================= [6] EVENT WIRING ===================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  qs("#start-btn").addEventListener("click", startGame);
+  qs("#reset-btn").addEventListener("click", () => {
+    if (confirm("לאתחל את המשחק מההתחלה?")) restartGame();
+  });
+  updateTimerDisplay();
+  updateProgressDots();
+});
+</script>
+</body>
+</html>

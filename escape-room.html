@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>פריצה מהמתקן | Secret Facility Escape</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+
+<!--
+  ============================================================
+  Hi there, curious hacker. 🕵️
+  Since you're already reading the page source... the game has
+  three stages. Keep looking. Not everything you need is
+  visible on the screen itself.
+  ============================================================
+-->
+
+<style>
+/* ================================================================
+   THEME VARIABLES — change these to re-skin the whole game quickly
+   ================================================================ */
+:root{
+  --bg-deep:#05070c;
+  --bg-panel: rgba(13,18,28,0.9);
+  --bg-panel-light: rgba(20,27,40,0.85);
+  --neon-green:#00ff9d;
+  --neon-cyan:#00e5ff;
+  --neon-red:#ff3860;
+  --neon-amber:#ffb400;
+  --text-main:#d8e4ee;
+  --text-muted:#7b8a9a;
+  --border-glow: 0 0 8px rgba(0,255,157,0.5), 0 0 20px rgba(0,255,157,0.15);
+  --font-ui:'Rubik', sans-serif;
+  --font-mono:'Fira Code', monospace;
+}
+
+*{ box-sizing:border-box; }
+
+html,body{
+  margin:0; padding:0;
+  background:var(--bg-deep);
+  color:var(--text-main);
+  font-family:var(--font-ui);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+
+/* Subtle scanline / matrix overlay for atmosphere */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none;
+  z-index:9999;
+  background:repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0.015) 0px,
+    rgba(255,255,255,0.015) 1px,
+    transparent 2px,
+    transparent 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+body::after{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none;
+  z-index:9998;
+  background:radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+}
+
+#app{ position:relative; min-height:100vh; z-index:1; }
+
+/* ---------- SHAKE + GLOW ANIMATIONS ---------- */
+@keyframes shake{
+  10%,90%{ transform:translateX(-2px); }
+  20%,80%{ transform:translateX(4px); }
+  30%,50%,70%{ transform:translateX(-9px); }
+  40%,60%{ transform:translateX(9px); }
+}
+.shake{ animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+
+@keyframes pulse-green{
+  0%,100%{ box-shadow: 0 0 10px rgba(0,255,157,0.4), inset 0 0 20px rgba(0,255,157,0.05); }
+  50%{ box-shadow: 0 0 35px rgba(0,255,157,0.9), inset 0 0 40px rgba(0,255,157,0.15); }
+}
+.solved-glow{ animation: pulse-green 1.2s ease-in-out 2; border-color: var(--neon-green) !important; }
+
+@keyframes flicker{
+  0%,19%,21%,23%,80%,100%{ opacity:1; }
+  20%,22%{ opacity:0.4; }
+}
+.flicker{ animation: flicker 4s infinite; }
+
+@keyframes floaty{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-8px); }
+}
+
+@keyframes blinkDot{
+  0%,100%{ opacity:1; box-shadow:0 0 6px currentColor; }
+  50%{ opacity:0.25; box-shadow:none; }
+}
+
+/* ---------- START SCREEN ---------- */
+#start-screen{
+  position:fixed; inset:0; z-index:200;
+  background: radial-gradient(ellipse at 50% 20%, #10151f 0%, #05070c 70%);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; padding:2rem;
+  transition: opacity .5s ease;
+}
+#start-screen.hidden{ opacity:0; pointer-events:none; }
+#start-screen h1{
+  font-size:clamp(1.6rem, 4vw, 2.6rem);
+  color:var(--neon-green);
+  text-shadow: var(--border-glow);
+  letter-spacing:1px;
+  margin-bottom:0.5rem;
+}
+#start-screen .subtitle{
+  color:var(--neon-cyan);
+  font-family:var(--font-mono);
+  margin-bottom:1.5rem;
+  font-size:0.95rem;
+}
+#start-screen p.lore{
+  max-width:640px; line-height:1.9; color:var(--text-main);
+  background:var(--bg-panel);
+  border:1px solid rgba(0,255,157,0.25);
+  border-radius:10px;
+  padding:1.3rem 1.6rem;
+  margin-bottom:1.8rem;
+  box-shadow: var(--border-glow);
+}
+
+.btn-neon{
+  background:transparent;
+  border:2px solid var(--neon-green);
+  color:var(--neon-green);
+  font-family:var(--font-ui);
+  font-weight:600;
+  font-size:1.05rem;
+  padding:0.8rem 2.2rem;
+  border-radius:8px;
+  cursor:pointer;
+  transition: all .25s ease;
+  text-shadow:0 0 6px rgba(0,255,157,0.6);
+}
+.btn-neon:hover{
+  background:var(--neon-green);
+  color:#03110a;
+  box-shadow:0 0 25px rgba(0,255,157,0.8);
+  transform: translateY(-2px);
+}
+
+/* ---------- HEADER ---------- */
+#game-header{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:1rem; flex-wrap:wrap;
+  background:linear-gradient(180deg, rgba(8,11,18,0.98), rgba(8,11,18,0.85));
+  border-bottom:1px solid rgba(0,255,157,0.25);
+  padding:0.7rem 1.2rem;
+  backdrop-filter: blur(6px);
+}
+.logo{
+  font-family:var(--font-mono);
+  color:var(--neon-cyan);
+  font-size:0.85rem;
+  letter-spacing:0.5px;
+  text-shadow:0 0 6px rgba(0,229,255,0.6);
+}
+.timer{
+  font-family:var(--font-mono);
+  font-size:1.6rem;
+  font-weight:600;
+  color:var(--neon-green);
+  text-shadow:0 0 10px rgba(0,255,157,0.7);
+  padding:0.2rem 0.9rem;
+  border:1px solid rgba(0,255,157,0.4);
+  border-radius:6px;
+  min-width:110px;
+  text-align:center;
+  transition: color .3s, border-color .3s;
+}
+.timer.low-time{
+  color:var(--neon-red);
+  border-color:var(--neon-red);
+  text-shadow:0 0 12px rgba(255,56,96,0.9);
+  animation: blinkDot 1s infinite;
+}
+.timer.penalty-flash{
+  animation: shake 0.4s;
+  color:var(--neon-red) !important;
+}
+
+.header-right{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+
+.progress-dots{ display:flex; gap:0.4rem; align-items:center; }
+.progress-dot{
+  width:12px; height:12px; border-radius:50%;
+  background:#2a3140; border:1px solid #3a4356;
+  transition: all .3s;
+}
+.progress-dot.dot-active{ background:var(--neon-cyan); box-shadow:0 0 8px var(--neon-cyan); }
+.progress-dot.dot-solved{ background:var(--neon-green); box-shadow:0 0 8px var(--neon-green); }
+
+.inventory-bar{
+  display:flex; gap:0.5rem; min-height:38px;
+  align-items:center;
+  padding:0.2rem 0.5rem;
+  border:1px dashed rgba(0,229,255,0.35);
+  border-radius:8px;
+  background:rgba(0,229,255,0.03);
+}
+.inventory-bar:empty::before{
+  content:"תיק ריק";
+  color:var(--text-muted);
+  font-size:0.75rem;
+  padding:0 0.4rem;
+}
+.inventory-item{
+  font-size:1.3rem;
+  cursor:pointer;
+  padding:0.15rem 0.4rem;
+  border-radius:6px;
+  transition: transform .2s;
+  filter: drop-shadow(0 0 4px rgba(0,229,255,0.6));
+}
+.inventory-item:hover{ transform:scale(1.25); background:rgba(0,229,255,0.1); }
+
+.btn-restart-icon{
+  background:none; border:1px solid rgba(255,56,96,0.4);
+  color:var(--neon-red); border-radius:6px;
+  padding:0.3rem 0.6rem; cursor:pointer; font-size:0.85rem;
+  transition:.2s;
+}
+.btn-restart-icon:hover{ background:rgba(255,56,96,0.15); }
+
+/* ---------- ROOMS ---------- */
+#rooms-container{ max-width:920px; margin:0 auto; padding:1.4rem; }
+.room{ display:none; animation: fadeIn .5s ease; }
+.room.active{ display:block; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+.room-title{
+  font-size:1.5rem; color:var(--neon-green);
+  text-shadow:var(--border-glow);
+  margin-bottom:0.3rem;
+  border-right:4px solid var(--neon-green);
+  padding-right:0.6rem;
+}
+.room-story{
+  color:var(--text-main); line-height:1.85; font-size:0.98rem;
+  background:var(--bg-panel);
+  border:1px solid rgba(255,255,255,0.06);
+  border-radius:10px;
+  padding:1rem 1.2rem;
+  margin-bottom:1rem;
+}
+
+/* Scene = interactive visual area with hotspots */
+.scene{
+  position:relative;
+  height:280px;
+  border-radius:12px;
+  border:1px solid rgba(0,229,255,0.25);
+  margin-bottom:1.1rem;
+  overflow:hidden;
+  box-shadow: inset 0 0 40px rgba(0,0,0,0.6);
+}
+.scene-room0{ background:
+    radial-gradient(circle at 20% 30%, rgba(0,255,157,0.08), transparent 60%),
+    linear-gradient(160deg, #0b111a 0%, #060a10 100%); }
+.scene-room1{ background:
+    radial-gradient(circle at 75% 25%, rgba(255,180,0,0.07), transparent 55%),
+    linear-gradient(160deg, #0e1310 0%, #06090a 100%); }
+.scene-room2{ background:
+    radial-gradient(circle at 50% 70%, rgba(255,56,96,0.09), transparent 55%),
+    linear-gradient(160deg, #10090f 0%, #06060a 100%); }
+
+.decor{
+  position:absolute; opacity:0.14; font-size:5.5rem;
+  pointer-events:none; animation: floaty 6s ease-in-out infinite;
+  filter: grayscale(0.3);
+}
+
+.hotspot{
+  position:absolute;
+  background:rgba(0,0,0,0.35);
+  border:1px solid rgba(0,229,255,0.4);
+  border-radius:50%;
+  width:52px; height:52px;
+  font-size:1.6rem;
+  cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  filter: drop-shadow(0 0 6px rgba(0,229,255,0.6));
+  transition: transform .2s, box-shadow .2s;
+}
+.hotspot:hover{ transform:scale(1.15); box-shadow:0 0 20px rgba(0,229,255,0.7); }
+.hotspot.collected{ opacity:0.3; filter:grayscale(1); cursor:default; }
+.hotspot.collected::after{ content:"✔"; position:absolute; font-size:0.9rem; top:-6px; left:-6px; color:var(--neon-green); }
+
+/* Code / cipher display panels */
+.code-panel{
+  font-family:var(--font-mono);
+  background:#03060a;
+  border:1px solid rgba(0,255,157,0.35);
+  border-radius:8px;
+  padding:1rem;
+  margin-bottom:1rem;
+  color:var(--neon-green);
+  font-size:1.15rem;
+  letter-spacing:2px;
+  text-align:center;
+  word-break:break-all;
+  box-shadow: inset 0 0 20px rgba(0,255,157,0.08);
+}
+.code-panel .label{
+  display:block; font-size:0.7rem; color:var(--text-muted);
+  letter-spacing:1px; margin-bottom:0.4rem;
+  font-family:var(--font-ui);
+}
+
+/* Puzzle input panel */
+.puzzle-panel{
+  background:var(--bg-panel-light);
+  border:1px solid rgba(0,255,157,0.15);
+  border-radius:10px;
+  padding:1rem 1.2rem;
+}
+.puzzle-row{ display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; }
+.password-input{
+  flex:1; min-width:160px;
+  background:#0a0f16;
+  border:1px solid rgba(0,229,255,0.4);
+  color:var(--neon-cyan);
+  font-family:var(--font-mono);
+  font-size:1.1rem;
+  letter-spacing:3px;
+  text-align:center;
+  padding:0.6rem;
+  border-radius:6px;
+  direction:ltr;
+}
+.password-input:focus{ outline:none; box-shadow:0 0 12px rgba(0,229,255,0.6); }
+
+.btn-submit{
+  background:var(--neon-cyan); color:#03131a; border:none;
+  font-weight:600; font-family:var(--font-ui);
+  padding:0.65rem 1.3rem; border-radius:6px; cursor:pointer;
+  transition:.2s;
+}
+.btn-submit:hover{ box-shadow:0 0 18px rgba(0,229,255,0.7); transform:translateY(-1px); }
+.btn-submit:disabled{ opacity:0.4; cursor:not-allowed; }
+
+.btn-hint-open{
+  background:none; border:1px solid var(--neon-amber); color:var(--neon-amber);
+  padding:0.6rem 1rem; border-radius:6px; cursor:pointer; font-family:var(--font-ui);
+  transition:.2s;
+}
+.btn-hint-open:hover{ background:rgba(255,180,0,0.12); }
+
+.password-feedback{
+  margin-top:0.6rem; min-height:1.2rem; font-size:0.9rem;
+}
+.feedback-error{ color:var(--neon-red); }
+.feedback-success{ color:var(--neon-green); }
+
+/* ---------- MODAL ---------- */
+#modal-overlay{
+  position:fixed; inset:0; z-index:300;
+  background:rgba(2,4,8,0.82);
+  display:flex; align-items:center; justify-content:center;
+  padding:1.2rem;
+  backdrop-filter: blur(3px);
+  transition: opacity .25s ease;
+}
+#modal-overlay.hidden{ opacity:0; pointer-events:none; }
+#modal-content{
+  background:var(--bg-panel);
+  border:1px solid rgba(0,255,157,0.4);
+  box-shadow: var(--border-glow);
+  border-radius:12px;
+  padding:1.6rem;
+  max-width:480px; width:100%;
+  max-height:80vh; overflow-y:auto;
+  line-height:1.8;
+}
+#modal-content h2,#modal-content h3{ color:var(--neon-green); margin-top:0; }
+.win-title{ color:var(--neon-green) !important; }
+.gameover-title{ color:var(--neon-red) !important; }
+.hint-text{
+  background:rgba(255,180,0,0.07);
+  border-right:3px solid var(--neon-amber);
+  padding:0.5rem 0.7rem; border-radius:6px; margin:0.5rem 0;
+  font-size:0.92rem;
+}
+.hint-text.muted{ color:var(--text-muted); border-right-color:var(--text-muted); }
+.btn-close-modal{
+  margin-top:1rem;
+  background:none; border:1px solid var(--text-muted); color:var(--text-main);
+  padding:0.5rem 1rem; border-radius:6px; cursor:pointer; width:100%;
+}
+.btn-close-modal:hover{ border-color:var(--neon-cyan); color:var(--neon-cyan); }
+.btn-hint{
+  background:var(--neon-amber); color:#241800; border:none; font-weight:600;
+  padding:0.6rem 1rem; border-radius:6px; cursor:pointer; margin-top:0.4rem; width:100%;
+}
+.btn-restart{
+  background:var(--neon-green); color:#03130a; border:none; font-weight:700;
+  padding:0.7rem 1.4rem; border-radius:8px; cursor:pointer; margin-top:0.8rem; width:100%;
+  font-size:1rem;
+}
+
+/* ---------- TOASTS ---------- */
+#toast-container{
+  position:fixed; bottom:1.2rem; left:50%; transform:translateX(-50%);
+  z-index:400; display:flex; flex-direction:column; gap:0.5rem; align-items:center;
+}
+.toast{
+  background:rgba(0,255,157,0.12);
+  border:1px solid var(--neon-green);
+  color:var(--neon-green);
+  padding:0.6rem 1.1rem; border-radius:8px;
+  font-size:0.9rem;
+  box-shadow:0 0 15px rgba(0,255,157,0.4);
+  animation: toastIn .3s ease;
+}
+@keyframes toastIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+.toast-out{ opacity:0; transform:translateY(10px); transition:.4s; }
+
+footer{ text-align:center; color:var(--text-muted); font-size:0.75rem; padding:2rem 1rem; }
+
+@media (max-width:600px){
+  .scene{ height:230px; }
+  .hotspot{ width:44px; height:44px; font-size:1.3rem; }
+  .decor{ font-size:3.5rem; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- =========================================================
+       START SCREEN
+  ========================================================== -->
+  <div id="start-screen">
+    <div class="subtitle">// SECURE FACILITY — UNAUTHORIZED ACCESS DETECTED //</div>
+    <h1>המתקן הנטוש</h1>
+    <p class="lore">
+      השנה 2027. התעוררת בתוך מתקן תת-קרקעי נטוש — לשעבר מעבדת מחקר סודית של יחידת סייבר צבאית.
+      האורות מהבהבים, נשמעת נקישה מרוחקת, ומערכת כריזה סדוקה חוזרת ולוחשת:
+      <strong>"סגירה אוטומטית בעוד 60 דקות."</strong><br><br>
+      עליך לפרוץ שלוש מערכות אבטחה עוקבות ולהימלט — לפני שהמתקן ננעל עליך לצמיתות.
+      שים לב לכל פרט. לפעמים הרמז הכי חשוב לא נמצא איפה שחשבת.
+    </p>
+    <button class="btn-neon" id="start-btn">🔓 התחל את הבריחה</button>
+  </div>
+
+  <!-- =========================================================
+       HEADER: timer, inventory, progress, restart
+  ========================================================== -->
+  <header id="game-header">
+    <div class="logo">⚠ TERMINAL // ACCESS-CTRL v2.7</div>
+    <div class="progress-dots">
+      <span class="progress-dot" data-index="0"></span>
+      <span class="progress-dot" data-index="1"></span>
+      <span class="progress-dot" data-index="2"></span>
+    </div>
+    <div id="timer" class="timer">60:00</div>
+    <div class="header-right">
+      <div id="inventory-bar" class="inventory-bar"></div>
+      <button class="btn-restart-icon" id="reset-btn" title="אתחל משחק">🔄 אתחול</button>
+    </div>
+  </header>
+
+  <!-- =========================================================
+       ROOMS
+  ========================================================== -->
+  <main id="rooms-container">
+
+    <!-- ============ ROOM 0 : SERVER ROOM (Morse code) ============ -->
+    <section class="room" data-room="0">
+      <h2 class="room-title">🖥️ חדר השרתים</h2>
+      <div class="room-story">
+        חדר השרתים חשוך ולח. שורות שרתים ישנים מהבהבים באור ירקרק חלש.
+        על אחד הקירות מישהו חרט ברשלנות רצף של נקודות וקווים — קוד מורס.
+        איפשהו בחדר בטח מוסתר המפתח לפענוח שלו.
+      </div>
+
+      <div class="scene scene-room0">
+        <div class="decor flicker" style="top:10%; left:35%;">🖥️</div>
+        <!-- Hotspots for this room are injected by JS from the ROOMS config below -->
+      </div>
+
+      <div class="code-panel">
+        <span class="label">אות מוצפן שנחרט על הקיר (מורס):</span>
+        <span id="morse-display">— טוען —</span>
+      </div>
+
+      <div class="puzzle-panel">
+        <div class="puzzle-row">
+          <input type="text" class="password-input" data-room="0" maxlength="4" inputmode="numeric" placeholder="קוד בן 4 ספרות">
+          <button class="btn-submit" data-room="0">🔓 פרוץ מערכת</button>
+          <button class="btn-hint-open" data-room="0">💡 רמז</button>
+        </div>
+        <div class="password-feedback" data-room="0"></div>
+      </div>
+    </section>
+
+    <!-- ============ ROOM 1 : ABANDONED LAB (diary logic) ============ -->
+    <section class="room" data-room="1">
+      <h2 class="room-title">🧪 המעבדה הנטושה</h2>
+      <div class="room-story">
+        מעבר לדלת הפרוצה נמצאת מעבדה נטושה. שולחן עבודה מכוסה אבק וניירת ישנה.
+        שני עמודי יומן קרועים מוטלים על הרצפה — ייתכן שהם משלימים זה את זה,
+        ומכילים את הקוד למערכת האבטחה של המעבדה.
+      </div>
+
+      <div class="scene scene-room1">
+        <div class="decor flicker" style="top:15%; left:40%;">🧪</div>
+      </div>
+
+      <div class="puzzle-panel">
+        <div class="puzzle-row">
+          <input type="text" class="password-input" data-room="1" maxlength="4" inputmode="numeric" placeholder="שעה בפורמט 24 שעות (למשל 1430)">
+          <button class="btn-submit" data-room="1">🔓 פרוץ מערכת</button>
+          <button class="btn-hint-open" data-room="1">💡 רמז</button>
+        </div>
+        <div class="password-feedback" data-room="1"></div>
+      </div>
+    </section>
+
+    <!-- ============ ROOM 2 : FINAL CONTROL ROOM (Caesar cipher + fourth wall) ============ -->
+    <section class="room" data-room="2">
+      <h2 class="room-title">🛑 חדר הבקרה הראשי</h2>
+      <div class="room-story">
+        זהו החדר האחרון. מסך שבור מציג הודעה מוצפנת בצופן קיסר.
+        קול ממוחשב לוחש: <em>"רק מי שבאמת מסתכל לעומק ימצא את כל הספרות הנסתרות..."</em>
+        יש הרגשה שחלק מהתשובה בכלל לא נמצא בתוך החדר הזה.
+
+        <!--
+          [MAINFRAME_LOG — 2027-03-14]
+          Override key fragment (LAST digit): "4"
+          If you are reading this in the page source,
+          you are already halfway to escaping.
+        -->
+      </div>
+
+      <div class="scene scene-room2">
+        <div class="decor flicker" style="top:12%; left:38%;">🛑</div>
+      </div>
+
+      <div class="code-panel">
+        <span class="label">הודעה מוצפנת (צופן קיסר על האלף-בית העברי):</span>
+        <span id="cipher-display">— טוען —</span>
+      </div>
+
+      <div class="puzzle-panel">
+        <div class="puzzle-row">
+          <input type="text" class="password-input" data-room="2" maxlength="4" inputmode="numeric" placeholder="קוד העל-עקיפה (4 ספרות)">
+          <button class="btn-submit" data-room="2">🔓 פרוץ ובריחה</button>
+          <button class="btn-hint-open" data-room="2">💡 רמז</button>
+        </div>
+        <div class="password-feedback" data-room="2"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>נבנה עם ❤️ ‏— Vanilla HTML / CSS / JS. ‏קל להרחבה, ראה הערות בקוד.</footer>
+
+  <!-- =========================================================
+       MODAL (used for item details, hints, win/lose screens)
+  ========================================================== -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-content"></div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!--
+    HTML5 Audio placeholders.
+    Drop your own sound files into an /assets folder and point
+    the src attributes below at them to enable custom SFX.
+    If the files are missing, the game automatically falls back
+    to a generated WebAudio beep, so it always works out of the box.
+  -->
+  <audio id="sfx-success" src="assets/success.mp3" preload="none"></audio>
+  <audio id="sfx-error" src="assets/error.mp3" preload="none"></audio>
+
+</div>
+
+<script>
+/* ================================================================================
+   ESCAPE ROOM GAME — main script
+   ================================================================================
+   TABLE OF CONTENTS (search for these tags to jump around):
+   [1] CONFIG           -> puzzle data. EDIT PUZZLES / PASSWORDS / TEXT HERE.
+   [2] UTILITIES        -> morse + caesar cipher helpers (auto-generate displayed codes)
+   [3] STATE            -> single source of truth for the whole game
+   [4] AUDIO             -> sound effects (file + WebAudio fallback)
+   [5] RENDER FUNCTIONS  -> DOM updates (inventory, hotspots, timer, cipher/morse text)
+   [6] GAME LOGIC        -> password checking, hints, penalties, win/lose
+   [7] EVENT WIRING      -> DOMContentLoaded listeners
+   ================================================================================ */
+
+
+/* ========================= [1] CONFIG ========================================= */
+/* This is the ONLY section you should need to touch to add/change puzzles.
+   - password: what the player must type to solve the room (string of digits)
+   - hints: array of exactly 3 strings, revealed one at a time (each costs 5 min)
+   - hotspots: clickable objects placed on the scene
+       type 'pickup' -> adds item to the inventory bar (one-time)
+       type 'info'   -> just shows a text popup (diary pages, notes, flavor)
+       type 'trap'   -> shakes screen + time penalty (adds tension/difficulty)
+     top/left are CSS percentage positions inside the room's .scene box.
+*/
+const ROOMS = [
+  { // ---------------- ROOM 0 : SERVER ROOM ----------------
+    id: 0,
+    title: "חדר השרתים",
+    password: "5281",                 // <-- change the passcode here
+    morseDigits: [5, 2, 8, 1],         // must spell out the password above
+    hints: [
+      "יש רדיו ישן ומאובק בפינת החדר. משהו מודבק עליו עשוי לעזור בפענוח.",
+      "כל קבוצה של נקודות וקווים מייצגת ספרה אחת. יש בדיוק 4 קבוצות בקוד.",
+      "הקוד המפוענח הוא: 5-2-8-1"
+    ],
+    hotspots: [
+      {
+        id: "cheatsheet",
+        icon: "📻",
+        top: "62%", left: "10%",
+        type: "pickup",
+        name: "רדיו ישן עם טבלת מורס",
+        detail:
+          "מצאת רדיו שדה ישן. מודבקת עליו טבלת קודי מורס דהויה:<br>" +
+          "<span style='font-family:var(--font-mono); color:var(--neon-green)'>" +
+          "0 = ‑‑‑‑‑ &nbsp; 1 = .‑‑‑‑ &nbsp; 2 = ..‑‑‑ &nbsp; 3 = ...‑‑ &nbsp; 4 = ....‑<br>" +
+          "5 = ..... &nbsp; 6 = ‑.... &nbsp; 7 = ‑‑... &nbsp; 8 = ‑‑‑.. &nbsp; 9 = ‑‑‑‑." +
+          "</span>"
+      },
+      {
+        id: "vending",
+        icon: "🥤",
+        top: "22%", left: "82%",
+        type: "info",
+        name: "מכונת שתייה ריקה",
+        detail: "מכונת שתייה ישנה וריקה. אין כאן שום דבר שימושי — לפעמים חדר הוא סתם חדר."
+      }
+    ]
+  },
+
+  { // ---------------- ROOM 1 : ABANDONED LAB ----------------
+    id: 1,
+    title: "המעבדה הנטושה",
+    password: "2100",                 // real-world time deduced from the two diary pages
+    hints: [
+      "שימו לב לשני קטעי היומן השונים על הרצפה — הם משלימים זה את זה.",
+      "אם התקלה קרתה בדיוק בחצות (00:00), והשעון במעבדה מקדים ב-3 שעות — מהי השעה האמיתית?",
+      "הקוד הוא השעה האמיתית בפורמט 24 שעות: 2100"
+    ],
+    hotspots: [
+      {
+        id: "diary1",
+        icon: "📄",
+        top: "18%", left: "16%",
+        type: "info",
+        name: "עמוד יומן קרוע (1)",
+        detail:
+          "\"...היום קרתה התקלה הגדולה. לא אשכח את הרעש והבזק האור. " +
+          "לפי השעון על הקיר זה קרה בדיוק בחצות, שנייה לפני חצות...\""
+      },
+      {
+        id: "diary2",
+        icon: "📃",
+        top: "55%", left: "72%",
+        type: "info",
+        name: "עמוד יומן קרוע (2)",
+        detail:
+          "\"...אף אחד לא טרח לתקן את השעון הישן פה במעבדה. הוא תמיד מקדים " +
+          "בדיוק 3 שעות בגלל הקרינה מהגנרטור הראשי. תזכורת לעצמי: לתקן את זה.\""
+      },
+      {
+        id: "old_photo",
+        icon: "🖼️",
+        top: "15%", left: "58%",
+        type: "info",
+        name: "תצלום ישן",
+        detail: "תמונה מוכתמת של צוות המעבדה. מישהו סימן X אדום על אחת הדמויות. מוזר, אבל לא נראה קשור."
+      },
+      {
+        id: "red_button",
+        icon: "🔴",
+        top: "72%", left: "38%",
+        type: "trap",
+        name: "כפתור חירום מפתה",
+        detail: "אזעקת שווא הופעלה! כנראה שזו הייתה מלכודת. איבדת זמן יקר.",
+        penalty: 60
+      }
+    ]
+  },
+
+  { // ---------------- ROOM 2 : FINAL CONTROL ROOM ----------------
+    id: 2,
+    title: "חדר הבקרה הראשי",
+    password: "9274",                 // final override code
+    /* This phrase is Caesar-shifted live by the game to produce the on-screen
+       cipher — meant to decode to "שתיים שבע" (the middle two digits: 2, 7).
+       IMPORTANT: if you change the password's middle digits, update this phrase too! */
+    cipherPlain: "שתיים שבע",
+    cipherShift: 5,
+    hints: [
+      "בדקו את קונסולת המפתחים של הדפדפן (הקש F12) — המערכת משאירה שם לוגים.",
+      "צופן קיסר כאן משתמש בהיסט של 5 מקומות באלף-בית העברי.",
+      "הקוד המלא הוא: 9274"
+    ],
+    hotspots: [
+      {
+        id: "terminal_note",
+        icon: "💻",
+        top: "18%", left: "74%",
+        type: "info",
+        name: "הודעת מערכת",
+        detail:
+          "לוג המערכת מציין: \"רישום מפורט זמין דרך כלי הפיתוח של הדפדפן. " +
+          "הקש F12 ובדוק את הקונסולה.\""
+      },
+      {
+        id: "broken_cam",
+        icon: "📷",
+        top: "62%", left: "18%",
+        type: "trap",
+        name: "מצלמת אבטחה שבורה",
+        detail: "ניסית לחבר את המצלמה מחדש אך גרמת לקצר חשמלי קטן שהפעיל אזעקה!",
+        penalty: 45
+      }
+    ]
+  }
+];
+
+const GAME_DURATION_SECONDS = 60 * 60;   // 60-minute countdown. Change here to adjust game length.
+const HINT_PENALTY_SECONDS = 5 * 60;     // 5-minute penalty per hint. Change here to adjust cost.
+const WRONG_GUESS_PENALTY_SECONDS = 15;  // small penalty per wrong password attempt (set to 0 to disable)
+
+
+/* ========================= [2] UTILITIES ======================================= */
+
+// Standard international morse code for digits 0-9
+const MORSE_DIGITS = {
+  0: "-----", 1: ".----", 2: "..---", 3: "...--", 4: "....-",
+  5: ".....", 6: "-....", 7: "--...", 8: "---..", 9: "----."
+};
+
+// The 22-letter Hebrew alphabet, used for the Caesar cipher wheel
+const HEBREW_ALPHABET = ["א","ב","ג","ד","ה","ו","ז","ח","ט","י","כ","ל","מ","נ","ס","ע","פ","צ","ק","ר","ש","ת"];
+
+// Shifts every Hebrew letter in `text` forward by `shift` positions (wraps around).
+// Non-Hebrew characters (spaces, punctuation) are left untouched.
+function caesarShiftHebrew(text, shift) {
+  return text.split("").map(ch => {
+    const idx = HEBREW_ALPHABET.indexOf(ch);
+    if (idx === -1) return ch;
+    const len = HEBREW_ALPHABET.length;
+    const newIdx = ((idx + shift) % len + len) % len;
+    return HEBREW_ALPHABET[newIdx];
+  }).join("");
+}
+
+
+/* ========================= [3] STATE =========================================== */
+
+const state = {
+  currentRoomIndex: 0,
+  timeRemaining: GAME_DURATION_SECONDS,
+  timerId: null,
+  inventory: [],           // array of hotspot ids collected
+  solved: [false, false, false],
+  hintsUsed: [0, 0, 0],
+  audioCtx: null
+};
+
+function qs(sel, ctx) { return (ctx || document).querySelector(sel); }
+function qsa(sel, ctx) { return Array.from((ctx || document).querySelectorAll(sel)); }
+
+function findHotspotById(id) {
+  for (const room of ROOMS) {
+    const found = room.hotspots.find(h => h.id === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+
+/* ========================= [4] AUDIO ============================================ */
+
+function initAudio() {
+  if (!state.audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) state.audioCtx = new AC();
+  }
+}
+
+// Generates a short beep via WebAudio — works even without any sound files present.
+function beep(freq, duration, type, vol) {
+  try {
+    initAudio();
+    if (!state.audioCtx) return;
+    const ctx = state.audioCtx;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.value = freq;
+    gain.gain.value = vol || 0.15;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    osc.stop(ctx.currentTime + duration + 0.02);
+  } catch (e) { /* audio unsupported — fail silently */ }
+}
+
+function playSuccessSound() {
+  const el = qs("#sfx-success");
+  if (el) el.play().catch(() => {});
+  beep(880, 0.12, "sine", 0.15);
+  setTimeout(() => beep(1320, 0.18, "sine", 0.15), 120);
+}
+
+function playErrorSound() {
+  const el = qs("#sfx-error");
+  if (el) el.play().catch(() => {});
+  beep(160, 0.3, "sawtooth", 0.2);
+}
+
+
+/* ========================= [5] RENDER FUNCTIONS ================================= */
+
+function renderMorseDisplay() {
+  const room = ROOMS[0];
+  const morseStr = room.morseDigits.map(d => MORSE_DIGITS[d]).join("   /   ");
+  qs("#morse-display").textContent = morseStr;
+}
+
+function renderCipherDisplay() {
+  const room = ROOMS[2];
+  qs("#cipher-display").textContent = caesarShiftHebrew(room.cipherPlain, room.cipherShift);
+}
+
+function renderInventory() {
+  const bar = qs("#inventory-bar");
+  bar.innerHTML = "";
+  state.inventory.forEach(itemId => {
+    const item = findHotspotById(itemId);
+    if (!item) return;
+    const div = document.createElement("div");
+    div.className = "inventory-item";
+    div.title = item.name;
+    div.textContent = item.icon;
+    div.addEventListener("click", () => openModal("<h3>" + item.icon + " " + item.name + "</h3><p>" + item.detail + "</p>"));
+    bar.appendChild(div);
+  });
+}
+
+function renderHotspots(roomIndex) {
+  const room = ROOMS[roomIndex];
+  const container = qs('.room[data-room="' + roomIndex + '"] .scene');
+  qsa(".hotspot", container).forEach(h => h.remove());
+  room.hotspots.forEach(h => {
+    const btn = document.createElement("button");
+    btn.className = "hotspot";
+    btn.style.top = h.top;
+    btn.style.left = h.left;
+    btn.textContent = h.icon;
+    btn.setAttribute("aria-label", h.name || "");
+    btn.type = "button";
+    if (h.type === "pickup" && state.inventory.includes(h.id)) {
+      btn.classList.add("collected");
+      btn.disabled = true;
+    }
+    btn.addEventListener("click", () => handleHotspotClick(roomIndex, h.id));
+    container.appendChild(btn);
+  });
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timeRemaining / 60);
+  const s = state.timeRemaining % 60;
+  const text = String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+  const el = qs("#timer");
+  el.textContent = text;
+  el.classList.toggle("low-time", state.timeRemaining <= 300);
+}
+
+function updateProgressDots() {
+  qsa(".progress-dot").forEach((dot, i) => {
+    dot.classList.toggle("dot-solved", state.solved[i]);
+    dot.classList.toggle("dot-active", i === state.currentRoomIndex);
+  });
+}
+
+function showToast(text) {
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.textContent = text;
+  qs("#toast-container").appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add("toast-out");
+    setTimeout(() => toast.remove(), 400);
+  }, 2500);
+}
+
+function openModal(html) {
+  qs("#modal-content").innerHTML = html + '<button class="btn-close-modal" onclick="closeModal()">סגור ✖</button>';
+  qs("#modal-overlay").classList.remove("hidden");
+}
+function closeModal() {
+  qs("#modal-overlay").classList.add("hidden");
+}
+
+function triggerShake() {
+  const app = qs("#app");
+  app.classList.add("shake");
+  setTimeout(() => app.classList.remove("shake"), 500);
+}
+
+function flashTimerPenalty() {
+  const el = qs("#timer");
+  el.classList.add("penalty-flash");
+  setTimeout(() => el.classList.remove("penalty-flash"), 600);
+}
+
+
+/* ========================= [6] GAME LOGIC ======================================= */
+
+function handleHotspotClick(roomIndex, hotspotId) {
+  const room = ROOMS[roomIndex];
+  const h = room.hotspots.find(x => x.id === hotspotId);
+  if (!h) return;
+
+  if (h.type === "pickup") {
+    if (!state.inventory.includes(h.id)) {
+      state.inventory.push(h.id);
+      renderInventory();
+      showToast("🎒 פריט חדש התקבל: " + h.name);
+      renderHotspots(roomIndex);
+    }
+    openModal("<h3>" + h.icon + " " + h.name + "</h3><p>" + h.detail + "</p>");
+  } else if (h.type === "info") {
+    openModal("<h3>" + h.icon + " " + h.name + "</h3><p>" + h.detail + "</p>");
+  } else if (h.type === "trap") {
+    triggerShake();
+    playErrorSound();
+    penalizeTime(h.penalty || 60);
+    openModal("<h3>⚠️ " + h.name + "</h3><p>" + h.detail + "</p>");
+  }
+}
+
+function penalizeTime(seconds) {
+  state.timeRemaining = Math.max(0, state.timeRemaining - seconds);
+  updateTimerDisplay();
+  flashTimerPenalty();
+  if (state.timeRemaining <= 0) {
+    clearInterval(state.timerId);
+    gameOver();
+  }
+}
+
+function tick() {
+  state.timeRemaining--;
+  updateTimerDisplay();
+  if (state.timeRemaining <= 0) {
+    state.timeRemaining = 0;
+    updateTimerDisplay();
+    clearInterval(state.timerId);
+    gameOver();
+  }
+}
+
+function startTimer() {
+  if (state.timerId) return;
+  state.timerId = setInterval(tick, 1000);
+}
+
+function showHintModal(roomIndex) {
+  const room = ROOMS[roomIndex];
+  const used = state.hintsUsed[roomIndex];
+  let html = "<h3>💡 רמזים — " + room.title + "</h3>";
+  for (let i = 0; i < used; i++) {
+    html += '<p class="hint-text">רמז ' + (i + 1) + ": " + room.hints[i] + "</p>";
+  }
+  if (used < room.hints.length) {
+    html += '<button class="btn-hint" onclick="useHint(' + roomIndex + ')">קבל רמז נוסף (⏱️ -5 דקות)</button>';
+  } else {
+    html += '<p class="hint-text muted">אין עוד רמזים זמינים לשלב הזה.</p>';
+  }
+  openModal(html);
+}
+
+function useHint(roomIndex) {
+  if (state.hintsUsed[roomIndex] >= ROOMS[roomIndex].hints.length) return;
+  state.hintsUsed[roomIndex]++;
+  penalizeTime(HINT_PENALTY_SECONDS);
+  showHintModal(roomIndex);
+}
+
+function submitPassword(roomIndex) {
+  const input = qs('.room[data-room="' + roomIndex + '"] .password-input');
+  const val = input.value.trim();
+  const room = ROOMS[roomIndex];
+  const feedback = qs('.password-feedback[data-room="' + roomIndex + '"]');
+
+  if (val === room.password) {
+    solveRoom(roomIndex);
+  } else {
+    triggerShake();
+    playErrorSound();
+    if (WRONG_GUESS_PENALTY_SECONDS > 0) penalizeTime(WRONG_GUESS_PENALTY_SECONDS);
+    feedback.textContent = "❌ קוד שגוי. המערכת רשמה ניסיון חדירה כושל...";
+    feedback.classList.remove("feedback-success");
+    feedback.classList.add("feedback-error");
+    setTimeout(() => feedback.classList.remove("feedback-error"), 800);
+  }
+}
+
+function solveRoom(roomIndex) {
+  state.solved[roomIndex] = true;
+  playSuccessSound();
+
+  const section = qs('.room[data-room="' + roomIndex + '"]');
+  section.classList.add("solved-glow");
+
+  const feedback = qs('.password-feedback[data-room="' + roomIndex + '"]');
+  feedback.textContent = "✅ גישה אושרה! פותח את השלב הבא...";
+  feedback.classList.remove("feedback-error");
+  feedback.classList.add("feedback-success");
+
+  qs('.password-input[data-room="' + roomIndex + '"]').disabled = true;
+  qs('.btn-submit[data-room="' + roomIndex + '"]').disabled = true;
+
+  updateProgressDots();
+
+  setTimeout(() => {
+    section.classList.remove("solved-glow");
+    if (roomIndex + 1 < ROOMS.length) {
+      showRoom(roomIndex + 1);
+    } else {
+      winGame();
+    }
+  }, 1400);
+}
+
+function showRoom(index) {
+  qsa(".room").forEach(r => r.classList.remove("active"));
+  qs('.room[data-room="' + index + '"]').classList.add("active");
+  state.currentRoomIndex = index;
+  renderHotspots(index);
+  if (index === 0) renderMorseDisplay();
+  if (index === 2) renderCipherDisplay();
+  updateProgressDots();
+}
+
+function winGame() {
+  clearInterval(state.timerId);
+  const m = Math.floor(state.timeRemaining / 60);
+  const s = state.timeRemaining % 60;
+  openModal(
+    '<h2 class="win-title">🎉 פרצת את המתקן בהצלחה!</h2>' +
+    "<p>הצלחת לחמוק בזמן שנותר: <strong>" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0") + "</strong></p>" +
+    "<p>כל הכבוד, האקר. סודות המתקן נחשפו לעולם.</p>" +
+    '<button class="btn-restart" onclick="restartGame()">🔄 שחק שוב</button>'
+  );
+}
+
+function gameOver() {
+  clearInterval(state.timerId);
+  openModal(
+    '<h2 class="gameover-title">💀 הזמן נגמר</h2>' +
+    "<p>המתקן ננעל אוטומטית. לא הצלחת להימלט בזמן...</p>" +
+    '<button class="btn-restart" onclick="restartGame()">🔄 נסה שוב</button>'
+  );
+}
+
+function restartGame() {
+  location.reload();
+}
+
+function startGame() {
+  qs("#start-screen").classList.add("hidden");
+  initAudio();
+  startTimer();
+  showRoom(0);
+
+  // ---- Fourth-wall mechanic: a hidden clue in the browser console ----
+  console.log("%c⚠ SYSTEM BREACH DETECTED ⚠", "color:#ff3860; font-size:20px; font-weight:bold;");
+  console.log("%c[MAINFRAME LOG] קוד העל-עקיפה הסופי מתחיל בספרה: 9", "color:#00ff9d; font-size:14px;");
+  console.log("%cרמז נוסף עשוי להסתתר בתוך קוד המקור (HTML) של הדף הזה...", "color:#00e5ff; font-size:13px;");
+}
+
+
+/* ========================= [7] EVENT WIRING ===================================== */
+
+document.addEventListener("DOMContentLoaded", () => {
+  qs("#start-btn").addEventListener("click", startGame);
+  qs("#reset-btn").addEventListener("click", () => {
+    if (confirm("לאתחל את המשחק מההתחלה?")) restartGame();
+  });
+
+  qsa(".btn-submit").forEach(btn => {
+    const idx = Number(btn.dataset.room);
+    btn.addEventListener("click", () => submitPassword(idx));
+  });
+
+  qsa(".password-input").forEach(inp => {
+    const idx = Number(inp.dataset.room);
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Enter") submitPassword(idx);
+    });
+  });
+
+  qsa(".btn-hint-open").forEach(btn => {
+    const idx = Number(btn.dataset.room);
+    btn.addEventListener("click", () => showHintModal(idx));
+  });
+
+  updateTimerDisplay();
+  updateProgressDots();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מרכז המשחקים 🎉</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&family=Space+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0d14;
+    --panel:#131829;
+    --panel-2:#1b2136;
+    --panel-3:#232a44;
+    --gold:#ffc857;
+    --gold-dim:#7a6330;
+    --violet:#6c5dd3;
+    --green:#3ecf8e;
+    --red:#ff6b6b;
+    --fog:#8891a5;
+    --paper:#f3f5fa;
+    --radius:22px;
+    --radius-sm:12px;
+    --shadow-lg:0 30px 80px rgba(0,0,0,.55);
+    --shadow-sm:0 8px 22px rgba(0,0,0,.35);
+    --tile-duration:900ms;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; min-height:100vh;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(255,200,87,.10), transparent 60%),
+      radial-gradient(ellipse 1200px 700px at 50% 110%, rgba(108,93,211,.12), transparent 60%),
+      var(--ink);
+    color:var(--paper);
+    font-family:'Rubik', sans-serif;
+    overflow-x:hidden;
+  }
+  .hidden{display:none !important;}
+
+  /* ---------- app shell ---------- */
+  .app{max-width:1400px; margin:0 auto; padding:16px 24px 40px; min-height:100vh; display:flex; flex-direction:column; gap:18px;}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; position:sticky; top:0; z-index:40; padding:6px 0;}
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .bulb{width:13px;height:13px;border-radius:50%; background:var(--gold); box-shadow:0 0 18px 6px rgba(255,200,87,.7); animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.5;}}
+  .brand h1{font-size:22px; font-weight:900; margin:0; letter-spacing:.3px;
+    background:linear-gradient(90deg,var(--gold),#ffe2a8); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .brand span{font-size:12px; color:var(--fog);}
+  .top-actions{display:flex; gap:10px; flex-wrap:wrap;}
+
+  .btn{border:none; cursor:pointer; font-family:inherit; font-weight:700; border-radius:999px; padding:12px 20px; font-size:14px;
+    display:inline-flex; align-items:center; gap:8px; transition:transform .15s ease, box-shadow .15s ease, background .15s ease; color:var(--paper);}
+  .btn:active:not(:disabled){transform:scale(.96);}
+  .btn-ghost{background:var(--panel-2); border:1px solid rgba(255,255,255,.08);}
+  .btn-ghost:hover{background:var(--panel-3);}
+  .btn-gold{background:linear-gradient(180deg,#ffd479,var(--gold)); color:#231a04; box-shadow:0 8px 24px rgba(255,200,87,.35);}
+  .btn-gold:hover{box-shadow:0 10px 30px rgba(255,200,87,.5);}
+  .btn-violet{background:linear-gradient(180deg,#8a7cf0,var(--violet)); box-shadow:0 8px 24px rgba(108,93,211,.35);}
+  .btn-sm{padding:8px 14px; font-size:12.5px;}
+  .btn:disabled{opacity:.35; cursor:not-allowed; transform:none;}
+
+  /* ---------- scoreboard (floating, global) ---------- */
+  .scoreboard-panel{
+    position:fixed; top:74px; left:20px; width:300px; max-height:calc(100vh - 100px);
+    overflow:auto; background:var(--panel); border-radius:var(--radius); padding:18px;
+    box-shadow:var(--shadow-lg); border:1px solid rgba(255,255,255,.06); z-index:60;
+    display:flex; flex-direction:column; gap:14px;
+    transform:translateX(-130%); opacity:0; transition:transform .28s cubic-bezier(.22,.9,.28,1), opacity .28s ease;
+    pointer-events:none;
+  }
+  .scoreboard-panel.open{transform:translateX(0); opacity:1; pointer-events:auto;}
+  .scoreboard-panel h2{margin:0; font-size:15px; letter-spacing:.5px; color:var(--gold); display:flex; align-items:center; gap:8px;}
+  .team-row{display:flex; align-items:center; gap:10px; background:var(--panel-2); border-radius:14px; padding:10px 12px;}
+  .team-dot{width:14px; height:14px; border-radius:50%; flex:0 0 auto;}
+  .team-name{flex:1; font-weight:600; font-size:14px; background:transparent; border:none; color:var(--paper); font-family:inherit; min-width:0;}
+  .team-name:focus{outline:none; border-bottom:1px solid var(--gold);}
+  .team-score{font-family:'Space Mono', monospace; font-weight:700; font-size:19px; min-width:34px; text-align:center; color:var(--gold); text-shadow:0 0 12px rgba(255,200,87,.35);}
+  .score-btn{width:26px; height:26px; border-radius:8px; border:none; background:var(--panel-3); color:var(--paper); font-weight:900; cursor:pointer; font-size:14px;}
+  .score-btn:hover{background:#2c3454;}
+  .team-remove{background:transparent; border:none; color:var(--fog); cursor:pointer; font-size:14px;}
+  .team-remove:hover{color:var(--red);}
+  .add-team{display:flex; gap:8px;}
+  .add-team input{flex:1; background:var(--panel-2); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:9px 12px; color:var(--paper); font-family:inherit; font-size:13px;}
+  .add-team input:focus{outline:none; border-color:var(--gold);}
+  .reset-scores{align-self:flex-start; background:transparent; border:none; color:var(--fog); font-size:12px; text-decoration:underline; cursor:pointer; padding:0;}
+  .reset-scores:hover{color:var(--red);}
+  .mini-score-strip{display:flex; gap:10px; flex-wrap:wrap;}
+  .mini-score-chip{display:flex; align-items:center; gap:6px; background:var(--panel-2); border-radius:999px; padding:6px 12px; font-size:12.5px;}
+  .mini-score-chip b{color:var(--gold); font-family:'Space Mono', monospace;}
+
+  /* ---------- generic panels ---------- */
+  .panel{background:var(--panel); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow-sm); border:1px solid rgba(255,255,255,.05); display:flex; flex-direction:column; gap:14px;}
+  .panel h2{margin:0; font-size:15px; letter-spacing:.5px; color:var(--gold); display:flex; align-items:center; gap:8px;}
+  .drop-zone{border:2px dashed rgba(255,200,87,.35); border-radius:14px; padding:18px; text-align:center; color:var(--fog); cursor:pointer; font-size:13px; transition:background .2s ease, border-color .2s ease;}
+  .drop-zone:hover{background:rgba(255,200,87,.05); border-color:var(--gold);}
+  .drop-zone input{display:none;}
+  .thumb-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .thumb-row img{width:52px; height:52px; object-fit:cover; border-radius:8px; opacity:.85;}
+  .thumb-more{width:52px; height:52px; border-radius:8px; background:var(--panel-2); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--fog);}
+
+  /* ---------- menu view ---------- */
+  .menu-hero{text-align:center; padding:20px 10px 6px;}
+  .menu-hero h2{font-size:30px; margin:0 0 8px; font-weight:900;}
+  .menu-hero p{color:var(--fog); margin:0; font-size:14.5px;}
+  .game-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media (max-width:920px){.game-grid{grid-template-columns:1fr;}}
+  .game-card{background:var(--panel); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-sm); border:1px solid rgba(255,255,255,.05);
+    display:flex; flex-direction:column; gap:12px; text-align:center; align-items:center; transition:transform .2s ease, box-shadow .2s ease;}
+  .game-card:hover{transform:translateY(-4px); box-shadow:var(--shadow-lg);}
+  .game-card .icon{font-size:46px;}
+  .game-card h3{margin:0; font-size:19px;}
+  .game-card p{margin:0; color:var(--fog); font-size:13px; line-height:1.5; min-height:56px;}
+  .status-line{text-align:center; color:var(--fog); font-size:13px;}
+  .status-line b{color:var(--gold); font-family:'Space Mono', monospace;}
+
+  /* ---------- shared stage layout for games 1 & 2 ---------- */
+  .main{display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start;}
+  @media (max-width:900px){.main{grid-template-columns:1fr;}}
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12.5px; color:var(--fog); display:flex; justify-content:space-between;}
+  .field label b{color:var(--paper); font-family:'Space Mono', monospace; font-weight:700;}
+  select, input[type=range]{width:100%;}
+  select{background:var(--panel-2); color:var(--paper); border:1px solid rgba(255,255,255,.08); border-radius:10px; padding:8px 10px; font-family:inherit; font-size:13px;}
+  input[type=range]{accent-color:var(--gold);}
+  .mode-toggle{display:flex; gap:8px;}
+  .mode-toggle button{flex:1; justify-content:center;}
+  .mode-toggle button.active{background:linear-gradient(180deg,#ffd479,var(--gold)); color:#231a04;}
+
+  .stage-wrap{display:flex; flex-direction:column; align-items:center; gap:16px;}
+  .stage-wrap:fullscreen, .roulette-stage:fullscreen{
+    background:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px;
+  }
+  .stage-wrap:-webkit-full-screen, .roulette-stage:-webkit-full-screen{
+    background:var(--ink); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:24px;
+  }
+  /* In fullscreen, show only the current image + its reveal/prev/next controls —
+     hide the filmstrip, secondary buttons, and anything else that isn't essential. */
+  :fullscreen .filmstrip,
+  :-webkit-full-screen .filmstrip,
+  :fullscreen .secondary-controls,
+  :-webkit-full-screen .secondary-controls{
+    display:none !important;
+  }
+  .stage-bounds{width:100%; max-width:900px; height:min(58vh,600px); display:flex; align-items:center; justify-content:center;}
+  .stage-frame{position:relative; border-radius:var(--radius); overflow:hidden;
+    background:radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255,200,87,.10), transparent 70%), var(--panel);
+    box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(255,255,255,.05);}
+  .stage-empty{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; color:var(--fog); text-align:center; padding:20px; z-index:2;}
+  .stage-empty .icon{font-size:40px;}
+  .stage-controls{display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;}
+  .reveal-btn{font-size:16px; padding:16px 34px;}
+  .kbd{font-family:'Space Mono', monospace; background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.15); padding:1px 8px; border-radius:6px; font-size:12px;}
+  .footer-note{text-align:center; color:var(--fog); font-size:12px; margin-top:6px;}
+
+  /* filmstrip */
+  .filmstrip{display:flex; gap:10px; overflow-x:auto; padding:6px 2px 10px; width:100%; max-width:900px;}
+  .filmstrip::-webkit-scrollbar{height:6px;}
+  .filmstrip::-webkit-scrollbar-thumb{background:var(--panel-3); border-radius:4px;}
+  .thumb{flex:0 0 auto; width:60px; height:60px; border-radius:12px; overflow:hidden; cursor:pointer; border:2px solid transparent;
+    opacity:.5; transition:opacity .2s ease, border-color .2s ease, transform .2s ease; background:var(--panel-2); position:relative;}
+  .thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .thumb:hover{opacity:.8; transform:translateY(-2px);}
+  .thumb.active{opacity:1; border-color:var(--gold); box-shadow:0 0 0 3px rgba(255,200,87,.15);}
+
+  /* ---------- zoom game ---------- */
+  .zoom-stage-inner{position:absolute; inset:0; overflow:hidden; border-radius:var(--radius);}
+  .zoom-stage-inner img{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; transform-origin:50% 50%;
+    transform:scale(1); transition:transform 2.3s cubic-bezier(.22,.9,.28,1); will-change:transform;}
+  .zoom-frame{aspect-ratio:var(--ar,4/3); width:100%;}
+  .zoom-frame::before{content:''; position:absolute; inset:0; background:radial-gradient(ellipse 120% 90% at 50% 110%, rgba(0,0,0,.65), transparent 55%); pointer-events:none; z-index:3;}
+  .zoom-frame::after{content:''; position:absolute; inset:0; box-shadow:inset 0 0 90px 20px rgba(0,0,0,.65); pointer-events:none; z-index:3; border-radius:var(--radius);}
+  .dots{display:flex; gap:10px;}
+  .dot{width:12px; height:12px; border-radius:50%; background:var(--panel-3); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); transition:background .3s ease, box-shadow .3s ease;}
+  .dot.lit{background:var(--gold); box-shadow:0 0 10px 3px rgba(255,200,87,.6);}
+
+  /* ---------- cubes game ---------- */
+  .tile{position:absolute; background-repeat:no-repeat; transition:transform var(--tile-duration) cubic-bezier(.3,1.15,.62,1), opacity var(--tile-duration) ease; box-shadow:0 2px 6px rgba(0,0,0,.35); will-change:transform;}
+  .progress-wrap{width:100%; max-width:820px; display:flex; align-items:center; gap:10px;}
+  .progress-bar{flex:1; height:8px; border-radius:999px; background:var(--panel-2); overflow:hidden;}
+  .progress-fill{height:100%; background:linear-gradient(90deg,var(--gold),#ffe2a8); width:0%; transition:width .4s ease;}
+  .progress-label{font-family:'Space Mono', monospace; font-size:12.5px; color:var(--fog); min-width:52px; text-align:left;}
+
+  /* ---------- roulette game ---------- */
+  .roulette-stage{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;}
+  .card{position:relative; width:100%; max-width:640px; background:var(--panel); border-radius:var(--radius);
+    box-shadow:var(--shadow-lg), inset 0 0 0 1px rgba(255,255,255,.05); overflow:hidden; padding:22px;
+    display:flex; flex-direction:column; gap:18px; opacity:0; transform:scale(.9) rotate(-2deg);}
+  .card.show{transition:opacity .55s cubic-bezier(.22,.9,.28,1), transform .55s cubic-bezier(.22,.9,.28,1); opacity:1; transform:scale(1) rotate(0deg);}
+  .card.spin-out{transition:opacity .28s ease, transform .28s ease; opacity:0; transform:scale(.92) rotate(3deg);}
+  .card-empty{color:var(--fog); text-align:center; padding:40px 10px;}
+  .card-image-wrap{width:100%; aspect-ratio:4/3; border-radius:16px; overflow:hidden;
+    background:radial-gradient(ellipse 70% 60% at 50% 40%, rgba(255,200,87,.10), transparent 70%), var(--panel-2);
+    display:flex; align-items:center; justify-content:center;}
+  .card-image-wrap img{width:100%; height:100%; object-fit:contain;}
+  .card-question{font-size:22px; font-weight:700; text-align:center; line-height:1.5; padding:6px 4px;}
+  .roll-btn{font-size:20px; padding:22px 54px; box-shadow:0 12px 36px rgba(255,200,87,.4);}
+  .roll-btn.rolling{animation:rollpulse .5s ease infinite;}
+  @keyframes rollpulse{0%,100%{box-shadow:0 12px 36px rgba(255,200,87,.4);} 50%{box-shadow:0 12px 55px rgba(255,200,87,.75);}}
+  .deck-status{display:flex; gap:22px; justify-content:center; flex-wrap:wrap; font-size:12.5px; color:var(--fog);}
+  .deck-status b{color:var(--gold); font-family:'Space Mono', monospace;}
+
+  @media (max-width:640px){
+    .card-question{font-size:18px;}
+    .roll-btn{padding:18px 36px; font-size:17px;}
+    .scoreboard-panel{width:calc(100vw - 40px); left:20px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ GLOBAL TOP BAR (persists across all views) ============ -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="bulb"></div>
+      <div>
+        <h1>🎉 מרכז המשחקים</h1>
+        <span>נופש משפחת סגיס תשפ"ו</span>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost btn-sm" id="scoreboardToggle">🏆 לוח תוצאות</button>
+      <button class="btn btn-ghost btn-sm" id="fullscreenBtn">⛶ מסך מלא</button>
+      <button class="btn btn-gold btn-sm hidden" id="backToMenuBtn">🏠 תפריט ראשי</button>
+    </div>
+  </div>
+
+  <!-- ============ VIEW: MENU ============ -->
+  <div class="view" id="view-menu">
+    <div class="menu-hero">
+      <h2>איזה משחק משחקים?</h2>
+      <p>טענו תמונות פעם אחת — הן יהיו זמינות בכל שלושת המשחקים. הניקוד נשמר תמיד, גם במעבר בין משחקים.</p>
+    </div>
+
+    <div class="panel">
+      <h2>📥 טעינת תמונות (מאגר משותף לכל המשחקים)</h2>
+      <div class="drop-zone" id="globalDropZone">
+        לחצו כדי לבחור את כל התמונות שלכם (ניתן לבחור כמה קבצים יחד)
+        <input type="file" id="globalFileInput" accept="image/*" multiple>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="shuffleImagesBtn">🔀 ערבוב סדר התמונות</button>
+      <div class="thumb-row" id="globalThumbRow"></div>
+      <div class="status-line">תמונות טעונות: <b id="globalImageCount">0</b></div>
+    </div>
+
+    <div class="game-grid">
+      <div class="game-card">
+        <div class="icon">🔦</div>
+        <h3>חשיפה בזום</h3>
+        <p>התמונה מתחילה מזום קיצוני על נקודה אקראית, ומתרחקת בהדרגה בכל לחיצה עד לחשיפה מלאה.</p>
+        <button class="btn btn-gold" data-nav="zoom">שחקו ▶</button>
+      </div>
+      <div class="game-card">
+        <div class="icon">🧩</div>
+        <h3>פאזל הקוביות</h3>
+        <p>התמונה מתפרקת לרשת קוביות מפוזרות, וכל לחיצה מחזירה עוד קוביות למקומן.</p>
+        <button class="btn btn-gold" data-nav="cubes">שחקו ▶</button>
+      </div>
+      <div class="game-card">
+        <div class="icon">🎰</div>
+        <h3>רולטת שאלות ותמונות</h3>
+        <p>כל לחיצה מגרילה יחד שאלה ותמונה אקראית מהמאגר, בלי חזרות עד שהמאגר מתרוקן.</p>
+        <button class="btn btn-gold" data-nav="roulette">שחקו ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VIEW: ZOOM REVEAL ============ -->
+  <div class="view hidden" id="view-zoom">
+    <div class="main">
+      <div class="stage-wrap">
+        <div class="stage-bounds" id="zoomStageBounds">
+          <div class="stage-frame zoom-frame" id="zoomStageFrame">
+            <div class="zoom-stage-inner" id="zoomStageInner"></div>
+            <div class="stage-empty" id="zoomEmpty">
+              <div class="icon">🖼️</div>
+              <div>אין תמונות במאגר — חיזרו לתפריט הראשי כדי לטעון תמונות</div>
+            </div>
+          </div>
+        </div>
+        <div class="dots" id="zoomDots"></div>
+        <div class="stage-controls">
+          <button class="btn btn-ghost" id="zoomPrevBtn">◀ הקודם</button>
+          <button class="btn btn-gold reveal-btn" id="zoomRevealBtn">התרחקו&nbsp;<span class="kbd">Space</span></button>
+          <button class="btn btn-ghost" id="zoomNextBtn">הבא ▶</button>
+        </div>
+        <div class="stage-controls secondary-controls">
+          <button class="btn btn-ghost btn-sm" id="zoomResetBtn">↺ איפוס זום לתמונה זו</button>
+        </div>
+        <div class="filmstrip" id="zoomFilmstrip"></div>
+      </div>
+    </div>
+    <div class="footer-note">כל תמונה מקבלת נקודת מיקוד אקראית משלה כשמגיעים אליה לראשונה.</div>
+  </div>
+
+  <!-- ============ VIEW: SCATTERED CUBES ============ -->
+  <div class="view hidden" id="view-cubes">
+    <div class="main">
+      <div class="stage-wrap">
+        <div class="stage-bounds" id="cubesStageBounds">
+          <div class="stage-frame" id="cubesStageFrame">
+            <div class="stage-empty" id="cubesEmpty">
+              <div class="icon">🖼️</div>
+              <div>אין תמונות במאגר — חיזרו לתפריט הראשי כדי לטעון תמונות</div>
+            </div>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar"><div class="progress-fill" id="cubesProgressFill"></div></div>
+          <div class="progress-label" id="cubesProgressLabel">0%</div>
+        </div>
+        <div class="stage-controls">
+          <button class="btn btn-ghost" id="cubesPrevBtn">◀ הקודם</button>
+          <button class="btn btn-gold reveal-btn" id="cubesRevealBtn">חשוף עוד&nbsp;<span class="kbd">Space</span></button>
+          <button class="btn btn-ghost" id="cubesNextBtn">הבא ▶</button>
+        </div>
+        <div class="stage-controls secondary-controls">
+          <button class="btn btn-violet btn-sm" id="cubesReshuffleBtn">↺ ערבוב מחדש</button>
+          <button class="btn btn-ghost btn-sm" id="cubesRevealAllBtn">חשיפה מלאה מיידית</button>
+        </div>
+        <div class="filmstrip" id="cubesFilmstrip"></div>
+      </div>
+
+      <div class="panel">
+        <h2>⚙️ הגדרות ורמת קושי</h2>
+        <div class="field">
+          <label>רזולוציית רשת (Grid) <b id="cubesGridLabel">15 × 15</b></label>
+          <select id="cubesGridSelect">
+            <option value="8">8 × 8 — קל מאוד</option>
+            <option value="12">12 × 12 — קל</option>
+            <option value="15" selected>15 × 15 — בינוני</option>
+            <option value="20">20 × 20 — קשה</option>
+            <option value="26">26 × 26 — קשה מאוד</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>מצב חשיפה</label>
+          <div class="mode-toggle">
+            <button class="btn btn-ghost btn-sm" id="cubesModeSingle">קליק אחד = הכל</button>
+            <button class="btn btn-ghost btn-sm active" id="cubesModeProgressive">הדרגתי (אחוזים)</button>
+          </div>
+        </div>
+        <div class="field" id="cubesPercentField">
+          <label>אחוזי קוביות שנחשפות בכל קליק <b id="cubesPercentLabel">20%</b></label>
+          <input type="range" id="cubesPercentSlider" min="5" max="50" step="5" value="20">
+        </div>
+        <div class="field">
+          <label>מהירות אנימציה <b id="cubesSpeedLabel">900ms</b></label>
+          <input type="range" id="cubesSpeedSlider" min="300" max="2200" step="100" value="900">
+        </div>
+      </div>
+    </div>
+    <div class="footer-note">רשת הקוביות מחושבת מחדש בכל מעבר בין תמונות, לפי גודל המסך.</div>
+  </div>
+
+  <!-- ============ VIEW: ROULETTE ============ -->
+  <div class="view hidden" id="view-roulette">
+    <div class="roulette-stage">
+      <div class="card" id="rouletteCard">
+        <div class="card-empty" id="rouletteCardEmpty">לחצו על "הגרל!" כדי להתחיל 🎲</div>
+      </div>
+      <button class="btn btn-gold roll-btn" id="rouletteRollBtn">🎲 הגרל!</button>
+      <div class="deck-status secondary-controls">
+        <div>שאלות שנותרו: <b id="rouletteQLeft">0</b> / <span id="rouletteQTotal">0</span></div>
+        <div>תמונות שנותרו: <b id="rouletteILeft">0</b> / <span id="rouletteITotal">0</span></div>
+      </div>
+      <button class="btn btn-ghost btn-sm secondary-controls" id="rouletteResetBtn">↺ אתחול מאגרים</button>
+    </div>
+    <div class="footer-note">כל תמונה ושאלה מופיעות פעם אחת עד שהמאגר מתרוקן, ואז הוא מתערבב מחדש.</div>
+  </div>
+
+  <!-- ============ SCOREBOARD (fixed, global, always mounted) ============ -->
+  <div class="scoreboard-panel" id="scoreboardPanel">
+    <h2>🏆 לוח תוצאות</h2>
+    <div id="teamList"></div>
+    <div class="add-team">
+      <input type="text" id="newTeamName" placeholder="שם קבוצה/שחקן חדש..." maxlength="20">
+      <button class="btn btn-gold btn-sm" id="addTeamBtn">הוסף</button>
+    </div>
+    <button class="reset-scores" id="resetScoresBtn">איפוס כל הניקוד</button>
+  </div>
+</div>
+
+<script>
+/* ====================================================================
+   ARCHITECTURE OVERVIEW
+   --------------------------------------------------------------------
+   GlobalState     — the single source of truth shared by every game:
+                     the loaded images pool + the scoreboard teams.
+                     Pure data + a tiny pub/sub (on/emit), no DOM.
+   ScoreboardComponent — the only place that renders team rows. Mounted
+                     ONCE into a fixed floating panel, so it is visible
+                     and keeps its state no matter which game is active.
+   MenuComponent   — main menu: wires the shared image uploader and the
+                     3 "play" buttons.
+   ZoomRevealGame / ScatteredCubesGame / RouletteGame
+                   — one component per mini-game. Each owns only its
+                     own DOM subtree + its own local state (current
+                     index, grid size, deck progress...), but always
+                     reads images from GlobalState.images.
+   Router          — swaps which <div class="view"> is visible and
+                     calls a game's onEnter() hook so it can (re)load
+                     images from GlobalState without a page reload.
+   ==================================================================== */
+
+/* ==================================================================
+   GlobalState — shared images pool + shared scoreboard
+   ================================================================== */
+const GlobalState = (() => {
+  let images = [];   // [{ src, name }]
+  let teams = [
+    { id: crypto.randomUUID(), name: 'קבוצה 1', color: 'var(--gold)', score: 0 },
+    { id: crypto.randomUUID(), name: 'קבוצה 2', color: 'var(--violet)', score: 0 },
+  ];
+  const TEAM_COLORS = ['var(--gold)', 'var(--violet)', 'var(--green)', 'var(--red)', '#4fb6ff', '#ff8fb2'];
+  const listeners = { images: new Set(), teams: new Set() };
+  const emit = (key) => listeners[key].forEach(fn => fn());
+
+  return {
+    get images() { return images; },
+    setImages(list) { images = list; emit('images'); },
+    onImagesChange(fn) { listeners.images.add(fn); },
+
+    get teams() { return teams; },
+    onTeamsChange(fn) { listeners.teams.add(fn); },
+    addTeam(name) {
+      const color = TEAM_COLORS[teams.length % TEAM_COLORS.length];
+      teams.push({ id: crypto.randomUUID(), name, color, score: 0 });
+      emit('teams');
+    },
+    removeTeam(id) { teams = teams.filter(t => t.id !== id); emit('teams'); },
+    renameTeam(id, name) { const t = teams.find(t => t.id === id); if (t) t.name = name; },
+    bump(id, delta) {
+      const t = teams.find(t => t.id === id);
+      if (t) { t.score = Math.max(0, t.score + delta); emit('teams'); }
+    },
+    resetScores() { teams.forEach(t => t.score = 0); emit('teams'); },
+  };
+})();
+
+/* ==================================================================
+   ScoreboardComponent — mounted once, visible in every view
+   ================================================================== */
+class ScoreboardComponent {
+  constructor() {
+    this.listEl = document.getElementById('teamList');
+    this.panel = document.getElementById('scoreboardPanel');
+    document.getElementById('addTeamBtn').addEventListener('click', () => {
+      const input = document.getElementById('newTeamName');
+      const name = input.value.trim();
+      if (!name) return;
+      GlobalState.addTeam(name);
+      input.value = '';
+    });
+    document.getElementById('newTeamName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('addTeamBtn').click();
+    });
+    document.getElementById('resetScoresBtn').addEventListener('click', () => GlobalState.resetScores());
+    document.getElementById('scoreboardToggle').addEventListener('click', () => this.panel.classList.toggle('open'));
+
+    GlobalState.onTeamsChange(() => this.render());
+    this.render();
+  }
+
+  render() {
+    this.listEl.innerHTML = '';
+    GlobalState.teams.forEach(team => {
+      const row = document.createElement('div');
+      row.className = 'team-row';
+      row.innerHTML = `
+        <div class="team-dot" style="background:${team.color}"></div>
+        <input class="team-name" type="text" value="${this.esc(team.name)}" maxlength="20">
+        <button class="score-btn" data-act="minus">−</button>
+        <div class="team-score">${team.score}</div>
+        <button class="score-btn" data-act="plus">+</button>
+        <button class="team-remove" title="הסר">✕</button>
+      `;
+      row.querySelector('.team-name').addEventListener('input', (e) => GlobalState.renameTeam(team.id, e.target.value));
+      row.querySelector('[data-act="plus"]').addEventListener('click', () => GlobalState.bump(team.id, 1));
+      row.querySelector('[data-act="minus"]').addEventListener('click', () => GlobalState.bump(team.id, -1));
+      row.querySelector('.team-remove').addEventListener('click', () => GlobalState.removeTeam(team.id));
+      this.listEl.appendChild(row);
+    });
+  }
+
+  esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+}
+
+/* ==================================================================
+   Shared demo images so every game works before anything is uploaded
+   ================================================================== */
+function demoImage(bg, bg2, emoji) {
+  return `data:image/svg+xml,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${bg}"/><stop offset="1" stop-color="${bg2}"/>
+    </linearGradient></defs>
+    <rect width="400" height="300" fill="url(#g)"/>
+    <text x="200" y="175" font-size="90" text-anchor="middle">${emoji}</text>
+  </svg>`)}`;
+}
+const DEMO_IMAGES = [
+  { src: demoImage('#1b2a4a', '#0d1424', '🚀'), name: 'הדגמה 1' },
+  { src: demoImage('#2a1b4a', '#140d24', '🧙'), name: 'הדגמה 2' },
+  { src: demoImage('#123a3a', '#0a1e1e', '🏴\u200d☠️'), name: 'הדגמה 3' },
+  { src: demoImage('#3a2a12', '#1e140a', '🎩'), name: 'הדגמה 4' },
+  { src: demoImage('#3a1212', '#1e0a0a', '🦸'), name: 'הדגמה 5' },
+];
+GlobalState.setImages(DEMO_IMAGES);
+
+/* ==================================================================
+   MenuComponent
+   ================================================================== */
+class MenuComponent {
+  constructor(router) {
+    this.router = router;
+    this.thumbRow = document.getElementById('globalThumbRow');
+    this.countEl = document.getElementById('globalImageCount');
+
+    const dropZone = document.getElementById('globalDropZone');
+    const fileInput = document.getElementById('globalFileInput');
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      const files = [...e.target.files];
+      if (!files.length) return;
+      const items = files.map(f => ({ src: URL.createObjectURL(f), name: f.name.replace(/\.[^.]+$/, '') }));
+      GlobalState.setImages(items);
+      fileInput.value = '';
+    });
+
+    document.querySelectorAll('[data-nav]').forEach(btn => {
+      btn.addEventListener('click', () => this.router.go(btn.dataset.nav));
+    });
+
+    document.getElementById('shuffleImagesBtn').addEventListener('click', () => {
+      const shuffled = [...GlobalState.images];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      GlobalState.setImages(shuffled);
+    });
+
+    GlobalState.onImagesChange(() => this.renderThumbs());
+    this.renderThumbs();
+  }
+
+  renderThumbs() {
+    const images = GlobalState.images;
+    this.countEl.textContent = images.length;
+    this.thumbRow.innerHTML = '';
+    images.slice(0, 14).forEach(img => {
+      const el = document.createElement('img');
+      el.src = img.src;
+      this.thumbRow.appendChild(el);
+    });
+    if (images.length > 14) {
+      const more = document.createElement('div');
+      more.className = 'thumb-more';
+      more.textContent = `+${images.length - 14}`;
+      this.thumbRow.appendChild(more);
+    }
+  }
+}
+
+/* ==================================================================
+   GAME 1 — Zoom Reveal
+   ================================================================== */
+const ZOOM_STAGES = [5.5, 3.2, 1.8, 1]; // first = most extreme zoom-in, last is always 1 (full image)
+
+class ZoomRevealGame {
+  constructor() {
+    this.stageBounds = document.getElementById('zoomStageBounds');
+    this.stageFrame = document.getElementById('zoomStageFrame');
+    this.stageInner = document.getElementById('zoomStageInner');
+    this.stageEmpty = document.getElementById('zoomEmpty');
+    this.dotsEl = document.getElementById('zoomDots');
+    this.filmstripEl = document.getElementById('zoomFilmstrip');
+
+    this.characters = []; // [{src, name, focus:{x,y}, ratio}]
+    this.currentIndex = 0;
+    this.stageIndex = 0;
+
+    document.getElementById('zoomRevealBtn').addEventListener('click', () => this.nextStage());
+    document.getElementById('zoomPrevBtn').addEventListener('click', () => this.selectCharacter(this.currentIndex - 1));
+    document.getElementById('zoomNextBtn').addEventListener('click', () => this.selectCharacter(this.currentIndex + 1));
+    document.getElementById('zoomResetBtn').addEventListener('click', () => { this.stageIndex = 0; this.renderStage(); });
+
+    window.addEventListener('resize', () => {
+      if (this.characters.length) this.layoutStageFrame(this.characters[this.currentIndex].ratio || 4 / 3);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (this.view.classList.contains('hidden')) return;
+      const tag = document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); this.nextStage(); }
+      if (e.code === 'ArrowRight') { e.preventDefault(); this.selectCharacter(this.currentIndex + 1); }
+      if (e.code === 'ArrowLeft') { e.preventDefault(); this.selectCharacter(this.currentIndex - 1); }
+    });
+
+    this.view = document.getElementById('view-zoom');
+  }
+
+  /** Called by the router every time this game becomes active. */
+  onEnter() {
+    this.characters = GlobalState.images.map(img => ({
+      src: img.src, name: img.name,
+      focus: { x: 15 + Math.random() * 70, y: 15 + Math.random() * 70 }, // random focus point per session
+      ratio: null,
+    }));
+    this.currentIndex = Math.min(this.currentIndex, Math.max(0, this.characters.length - 1));
+    this.stageIndex = 0;
+    this.renderStage();
+  }
+
+  renderStage() {
+    this.stageInner.querySelectorAll('img').forEach(el => el.remove());
+    this.stageEmpty.style.display = this.characters.length ? 'none' : 'flex';
+    const noImgs = this.characters.length === 0;
+    document.getElementById('zoomRevealBtn').disabled = noImgs;
+    document.getElementById('zoomPrevBtn').disabled = noImgs;
+    document.getElementById('zoomNextBtn').disabled = noImgs;
+    document.getElementById('zoomResetBtn').disabled = noImgs;
+    if (noImgs) { this.renderDots(); this.renderFilmstrip(); return; }
+
+    const char = this.characters[this.currentIndex];
+    const img = document.createElement('img');
+    img.alt = char.name || 'תמונה';
+    this.stageInner.appendChild(img);
+
+    this.applyRatio(char);
+    img.src = char.src;
+    img.style.transition = 'none';
+    img.style.transformOrigin = `${char.focus.x}% ${char.focus.y}%`;
+    img.style.transform = `scale(${ZOOM_STAGES[this.stageIndex]})`;
+    void img.offsetWidth;
+    img.style.transition = '';
+
+    this.renderDots();
+    this.renderFilmstrip();
+  }
+
+  applyRatio(char) {
+    if (char.ratio) { this.stageFrame.style.setProperty('--ar', char.ratio); this.layoutStageFrame(char.ratio); return; }
+    this.stageFrame.style.setProperty('--ar', 4 / 3);
+    this.layoutStageFrame(4 / 3);
+    const probe = new Image();
+    probe.onload = () => {
+      const raw = probe.naturalWidth / probe.naturalHeight || 4 / 3;
+      char.ratio = Math.min(1.8, Math.max(0.55, raw));
+      this.stageFrame.style.setProperty('--ar', char.ratio);
+      if (this.characters[this.currentIndex] === char) this.layoutStageFrame(char.ratio);
+    };
+    probe.src = char.src;
+  }
+
+  layoutStageFrame(ratio) {
+    const maxW = this.stageBounds.clientWidth, maxH = this.stageBounds.clientHeight;
+    if (!maxW || !maxH) return;
+    let w = maxW, h = w / ratio;
+    if (h > maxH) { h = maxH; w = h * ratio; }
+    this.stageFrame.style.width = w + 'px';
+    this.stageFrame.style.height = h + 'px';
+  }
+
+  renderDots() {
+    this.dotsEl.innerHTML = '';
+    ZOOM_STAGES.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i <= this.stageIndex ? ' lit' : '');
+      this.dotsEl.appendChild(d);
+    });
+  }
+
+  renderFilmstrip() {
+    this.filmstripEl.innerHTML = '';
+    this.characters.forEach((c, i) => {
+      const t = document.createElement('div');
+      t.className = 'thumb' + (i === this.currentIndex ? ' active' : '');
+      t.innerHTML = `<img src="${c.src}" alt="">`;
+      t.addEventListener('click', () => this.selectCharacter(i));
+      this.filmstripEl.appendChild(t);
+    });
+  }
+
+  nextStage() {
+    if (!this.characters.length || this.stageIndex >= ZOOM_STAGES.length - 1) return;
+    this.stageIndex++;
+    const img = this.stageInner.querySelector('img');
+    if (img) img.style.transform = `scale(${ZOOM_STAGES[this.stageIndex]})`;
+    this.renderDots();
+  }
+
+  selectCharacter(i) {
+    if (!this.characters.length) return;
+    this.currentIndex = ((i % this.characters.length) + this.characters.length) % this.characters.length;
+    this.stageIndex = 0;
+    this.renderStage();
+  }
+}
+
+/* ==================================================================
+   GAME 2 — Scattered Cubes
+   ================================================================== */
+const CUBES_DEFAULT_GRID_SIZE = 15;
+const CUBES_DEFAULT_REVEAL_PERCENT = 20;
+const CUBES_REVEAL_STAGGER_MS = 5;
+const CUBES_SCATTER_DISTANCE = 1.15;
+const CUBES_SCATTER_MAX_ROTATION = 40;
+
+class Tile {
+  constructor({ left, top, width, height, imgSrc, canvasW, canvasH }) {
+    this.home = { left, top, width, height };
+    this.scatterOffset = this.computeScatterOffset(left, top, width, height, canvasW, canvasH);
+    this.el = this.buildElement(imgSrc, canvasW, canvasH);
+  }
+  computeScatterOffset(left, top, width, height, canvasW, canvasH) {
+    const cx = left + width / 2 - canvasW / 2, cy = top + height / 2 - canvasH / 2;
+    const len = Math.hypot(cx, cy) || 1;
+    const spread = canvasW * CUBES_SCATTER_DISTANCE * (0.6 + Math.random() * 0.6);
+    const spreadY = canvasH * CUBES_SCATTER_DISTANCE * (0.6 + Math.random() * 0.6);
+    return {
+      dx: (cx / len) * spread + (Math.random() - 0.5) * canvasW * 0.5,
+      dy: (cy / len) * spreadY + (Math.random() - 0.5) * canvasH * 0.5,
+      rot: (Math.random() - 0.5) * 2 * CUBES_SCATTER_MAX_ROTATION,
+    };
+  }
+  buildElement(imgSrc, canvasW, canvasH) {
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.style.left = this.home.left + 'px'; el.style.top = this.home.top + 'px';
+    el.style.width = this.home.width + 'px'; el.style.height = this.home.height + 'px';
+    el.style.backgroundImage = `url(${imgSrc})`;
+    el.style.backgroundSize = `${canvasW}px ${canvasH}px`;
+    el.style.backgroundPosition = `-${this.home.left}px -${this.home.top}px`;
+    return el;
+  }
+  scatter() {
+    this.el.style.transitionDelay = '0ms'; this.el.style.transition = 'none'; this.el.style.opacity = '0.9';
+    this.el.style.transform = `translate(${this.scatterOffset.dx}px, ${this.scatterOffset.dy}px) rotate(${this.scatterOffset.rot}deg) scale(.85)`;
+    void this.el.offsetWidth;
+    this.el.style.transition = '';
+  }
+  settle(delayMs = 0) {
+    this.el.style.transitionDelay = delayMs + 'ms';
+    this.el.style.transform = 'translate(0,0) rotate(0deg) scale(1)';
+    this.el.style.opacity = '1';
+  }
+}
+
+class TileGrid {
+  constructor(container, emptyState) {
+    this.container = container; this.emptyState = emptyState;
+    this.tiles = []; this.revealOrder = []; this.revealedCount = 0;
+  }
+  async load(imgSrc, gridSize, boundsEl) {
+    const img = await this.preload(imgSrc);
+    const ratio = Math.min(1.8, Math.max(0.55, img.naturalWidth / img.naturalHeight || 4 / 3));
+    const maxW = boundsEl.clientWidth, maxH = boundsEl.clientHeight;
+    let w = maxW, h = w / ratio;
+    if (h > maxH) { h = maxH; w = h * ratio; }
+
+    this.container.style.width = w + 'px'; this.container.style.height = h + 'px';
+    this.emptyState.style.display = 'none';
+    this.container.querySelectorAll('.tile').forEach(t => t.remove());
+
+    this.tiles = this.buildTiles(imgSrc, gridSize, w, h);
+    this.tiles.forEach(t => this.container.appendChild(t.el));
+    this.scatterAll();
+  }
+  preload(src) { return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = src; }); }
+  buildTiles(imgSrc, gridSize, canvasW, canvasH) {
+    const tiles = [];
+    const colEdges = Array.from({ length: gridSize + 1 }, (_, i) => Math.round((i * canvasW) / gridSize));
+    const rowEdges = Array.from({ length: gridSize + 1 }, (_, i) => Math.round((i * canvasH) / gridSize));
+    for (let row = 0; row < gridSize; row++) {
+      for (let col = 0; col < gridSize; col++) {
+        const left = colEdges[col], top = rowEdges[row];
+        tiles.push(new Tile({ left, top, width: colEdges[col + 1] - left, height: rowEdges[row + 1] - top, imgSrc, canvasW, canvasH }));
+      }
+    }
+    return tiles;
+  }
+  scatterAll() {
+    this.tiles.forEach(t => t.scatter());
+    const arr = Array.from({ length: this.tiles.length }, (_, i) => i);
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    this.revealOrder = arr; this.revealedCount = 0;
+  }
+  revealNext(count) {
+    const target = Math.min(this.tiles.length, this.revealedCount + count);
+    this.revealOrder.slice(this.revealedCount, target).forEach((idx, i) => this.tiles[idx].settle(i * CUBES_REVEAL_STAGGER_MS));
+    this.revealedCount = target;
+    return this.revealedCount;
+  }
+  revealAll() { return this.revealNext(this.tiles.length); }
+  get progress() { return this.tiles.length ? this.revealedCount / this.tiles.length : 0; }
+  isComplete() { return this.tiles.length > 0 && this.revealedCount >= this.tiles.length; }
+}
+
+class ScatteredCubesGame {
+  constructor() {
+    this.images = [];
+    this.currentIndex = 0;
+    this.gridSize = CUBES_DEFAULT_GRID_SIZE;
+    this.revealPercent = CUBES_DEFAULT_REVEAL_PERCENT;
+    this.mode = 'progressive';
+
+    this.stageFrame = document.getElementById('cubesStageFrame');
+    this.stageEmpty = document.getElementById('cubesEmpty');
+    this.stageBounds = document.getElementById('cubesStageBounds');
+    this.progressFill = document.getElementById('cubesProgressFill');
+    this.progressLabel = document.getElementById('cubesProgressLabel');
+    this.filmstripEl = document.getElementById('cubesFilmstrip');
+    this.view = document.getElementById('view-cubes');
+
+    this.grid = new TileGrid(this.stageFrame, this.stageEmpty);
+    this.bindControls();
+    this.bindKeyboard();
+  }
+
+  onEnter() {
+    this.images = GlobalState.images;
+    this.currentIndex = Math.min(this.currentIndex, Math.max(0, this.images.length - 1));
+    this.loadCurrent();
+  }
+
+  bindControls() {
+    document.getElementById('cubesRevealBtn').addEventListener('click', () => this.advance());
+    document.getElementById('cubesReshuffleBtn').addEventListener('click', () => { if (this.images.length) this.grid.scatterAll(); this.updateProgress(); });
+    document.getElementById('cubesRevealAllBtn').addEventListener('click', () => this.completeNow());
+    document.getElementById('cubesPrevBtn').addEventListener('click', () => this.switchImage(this.currentIndex - 1));
+    document.getElementById('cubesNextBtn').addEventListener('click', () => this.switchImage(this.currentIndex + 1));
+
+    document.getElementById('cubesGridSelect').addEventListener('change', (e) => {
+      this.gridSize = Number(e.target.value);
+      document.getElementById('cubesGridLabel').textContent = `${this.gridSize} × ${this.gridSize}`;
+      this.loadCurrent();
+    });
+
+    const modeSingle = document.getElementById('cubesModeSingle');
+    const modeProgressive = document.getElementById('cubesModeProgressive');
+    const percentField = document.getElementById('cubesPercentField');
+    modeSingle.addEventListener('click', () => {
+      this.mode = 'single'; modeSingle.classList.add('active'); modeProgressive.classList.remove('active');
+      percentField.style.opacity = '.4'; percentField.style.pointerEvents = 'none';
+    });
+    modeProgressive.addEventListener('click', () => {
+      this.mode = 'progressive'; modeProgressive.classList.add('active'); modeSingle.classList.remove('active');
+      percentField.style.opacity = '1'; percentField.style.pointerEvents = 'auto';
+    });
+
+    document.getElementById('cubesPercentSlider').addEventListener('input', (e) => {
+      this.revealPercent = Number(e.target.value);
+      document.getElementById('cubesPercentLabel').textContent = this.revealPercent + '%';
+    });
+    document.getElementById('cubesSpeedSlider').addEventListener('input', (e) => {
+      document.documentElement.style.setProperty('--tile-duration', e.target.value + 'ms');
+      document.getElementById('cubesSpeedLabel').textContent = e.target.value + 'ms';
+    });
+
+    window.addEventListener('resize', () => { if (!this.view.classList.contains('hidden')) this.loadCurrent(true); });
+  }
+
+  bindKeyboard() {
+    window.addEventListener('keydown', (e) => {
+      if (this.view.classList.contains('hidden')) return;
+      const tag = document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.code === 'Space') { e.preventDefault(); this.advance(); }
+      if (e.code === 'ArrowRight') { e.preventDefault(); this.switchImage(this.currentIndex + 1); }
+      if (e.code === 'ArrowLeft') { e.preventDefault(); this.switchImage(this.currentIndex - 1); }
+    });
+  }
+
+  async loadCurrent(keepProgress = false) {
+    const noImgs = this.images.length === 0;
+    document.getElementById('cubesRevealBtn').disabled = noImgs;
+    document.getElementById('cubesPrevBtn').disabled = noImgs;
+    document.getElementById('cubesNextBtn').disabled = noImgs;
+    document.getElementById('cubesReshuffleBtn').disabled = noImgs;
+    document.getElementById('cubesRevealAllBtn').disabled = noImgs;
+    this.renderFilmstrip();
+    if (noImgs) { this.stageEmpty.style.display = 'flex'; this.updateProgress(); return; }
+
+    const wasComplete = keepProgress && this.grid.isComplete();
+    await this.grid.load(this.images[this.currentIndex].src, this.gridSize, this.stageBounds);
+    if (wasComplete) this.grid.revealAll();
+    this.updateProgress();
+  }
+
+  renderFilmstrip() {
+    this.filmstripEl.innerHTML = '';
+    this.images.forEach((c, i) => {
+      const t = document.createElement('div');
+      t.className = 'thumb' + (i === this.currentIndex ? ' active' : '');
+      t.innerHTML = `<img src="${c.src}" alt="">`;
+      t.addEventListener('click', () => this.switchImage(i));
+      this.filmstripEl.appendChild(t);
+    });
+  }
+
+  switchImage(index) {
+    if (!this.images.length) return;
+    this.currentIndex = ((index % this.images.length) + this.images.length) % this.images.length;
+    this.loadCurrent();
+  }
+
+  advance() {
+    if (!this.images.length || this.grid.isComplete()) return;
+    const step = this.mode === 'single' ? this.grid.tiles.length : Math.max(1, Math.ceil(this.grid.tiles.length * (this.revealPercent / 100)));
+    this.grid.revealNext(step);
+    this.updateProgress();
+  }
+
+  completeNow() { if (!this.images.length) return; this.grid.revealAll(); this.updateProgress(); }
+
+  updateProgress() {
+    const pct = Math.round(this.grid.progress * 100);
+    this.progressFill.style.width = pct + '%';
+    this.progressLabel.textContent = pct + '%';
+  }
+}
+
+/* ==================================================================
+   GAME 3 — Roulette (questions + images)
+   ================================================================== */
+/* ✏️ מאגר השאלות — כאן עורכים את רשימת השאלות (JSON פשוט). */
+const QUESTIONS = [
+  "מה אני הכי אוהב\אוהבת לאכול?",
+"איזה משחק הכי כיף לי לשחק?",
+"מה הדבר הראשון שאני עושה שאני מגיע\ה הביתה?",
+"איזה ספר אהוב עלי?",
+"שיר שאני שר\ה כל היום?",
+"מה התחביב שלי?",
+"איזה מתנה הביאו לי ליומולדת האחרון?",
+"מה זה ארוחת צהרים מפנקת בשבילי?",
+"מילה שאני אומר\ת הרבה פעמים ביום?",
+"מה הכינוי שלי?",
+"מה אני רוצה להיות כשאהיה גדול\ה?",
+"מה התכונה הכי בולטת שלי?",
+"באיזה יום נולדתי?",
+"במה אני עוזר\ת בבית?",
+"מה הצבע האהוב עלי?",
+];
+
+/** Shuffle-bag: draws items without repetition until the pool is empty. */
+class Deck {
+  constructor(items = []) { this.reset(items); }
+  reset(items) { this.items = [...items]; this.queue = []; this.lastDrawn = null; }
+  get total() { return this.items.length; }
+  get remaining() { return this.queue.length; }
+  refill() {
+    const shuffled = [...this.items];
+    for (let i = shuffled.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; }
+    if (shuffled.length > 1 && shuffled[0] === this.lastDrawn) [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+    this.queue = shuffled;
+  }
+  draw() {
+    if (!this.items.length) return null;
+    if (!this.queue.length) this.refill();
+    const item = this.queue.pop();
+    this.lastDrawn = item;
+    return item;
+  }
+}
+
+class RouletteState {
+  constructor(questions, images) {
+    this.questionDeck = new Deck(questions);
+    this.imageDeck = new Deck(images);
+    this.current = null;
+  }
+  setImages(images) { this.imageDeck.reset(images); }
+  resetAll() { this.questionDeck.reset(this.questionDeck.items); this.imageDeck.reset(this.imageDeck.items); this.current = null; }
+  canDraw() { return this.questionDeck.total > 0 && this.imageDeck.total > 0; }
+  draw() {
+    if (!this.canDraw()) return null;
+    this.current = { question: this.questionDeck.draw(), image: this.imageDeck.draw() };
+    return this.current;
+  }
+}
+
+class RouletteGame {
+  constructor() {
+    this.state = new RouletteState(QUESTIONS, []);
+    this.lastImagesRef = null;
+
+    this.card = document.getElementById('rouletteCard');
+    this.rollBtn = document.getElementById('rouletteRollBtn');
+    this.qLeftEl = document.getElementById('rouletteQLeft');
+    this.qTotalEl = document.getElementById('rouletteQTotal');
+    this.iLeftEl = document.getElementById('rouletteILeft');
+    this.iTotalEl = document.getElementById('rouletteITotal');
+    this.view = document.getElementById('view-roulette');
+
+    this.rollBtn.addEventListener('click', () => this.roll());
+    document.getElementById('rouletteResetBtn').addEventListener('click', () => {
+      this.state.resetAll();
+      this.showEmpty('המאגרים אופסו — לחצו "הגרל!" כדי להתחיל מחדש 🔄');
+      this.updateStatus();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (this.view.classList.contains('hidden')) return;
+      const tag = document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.code === 'Space') { e.preventDefault(); this.roll(); }
+    });
+  }
+
+  onEnter() {
+    if (this.lastImagesRef !== GlobalState.images) {
+      this.state.setImages(GlobalState.images.map(i => i.src));
+      this.lastImagesRef = GlobalState.images;
+    }
+    this.updateStatus();
+  }
+
+  roll() {
+    if (this.rollBtn.disabled) return;
+    if (!this.state.canDraw()) { this.showEmpty('צריך גם שאלות וגם תמונות במאגר כדי להגריל 🙈'); return; }
+    this.rollBtn.disabled = true;
+    this.rollBtn.classList.add('rolling');
+
+    const swapAndShow = () => {
+      const pair = this.state.draw();
+      this.renderPair(pair);
+      this.updateStatus();
+      this.rollBtn.disabled = false;
+      this.rollBtn.classList.remove('rolling');
+    };
+
+    if (this.card.classList.contains('show')) {
+      this.card.classList.remove('show');
+      this.card.classList.add('spin-out');
+      setTimeout(() => {
+        this.card.classList.remove('spin-out');
+        swapAndShow();
+        requestAnimationFrame(() => this.card.classList.add('show'));
+      }, 280);
+    } else {
+      swapAndShow();
+      requestAnimationFrame(() => this.card.classList.add('show'));
+    }
+  }
+
+  renderPair(pair) {
+    if (!pair) { this.showEmpty('אין עוד שאלות או תמונות במאגר — לחצו "אתחול מאגרים" 🔁'); return; }
+    this.card.innerHTML = `
+      <div class="card-image-wrap"><img src="${pair.image}" alt=""></div>
+      <div class="card-question">${this.esc(pair.question)}</div>
+    `;
+  }
+
+  showEmpty(message) {
+    this.card.classList.remove('spin-out');
+    this.card.innerHTML = `<div class="card-empty">${this.esc(message)}</div>`;
+    requestAnimationFrame(() => this.card.classList.add('show'));
+  }
+
+  esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+  updateStatus() {
+    this.qLeftEl.textContent = this.state.questionDeck.remaining;
+    this.qTotalEl.textContent = this.state.questionDeck.total;
+    this.iLeftEl.textContent = this.state.imageDeck.remaining;
+    this.iTotalEl.textContent = this.state.imageDeck.total;
+    this.rollBtn.disabled = !this.state.canDraw();
+  }
+}
+
+/* ==================================================================
+   Router — swaps visible <div class="view">, calls onEnter() hooks
+   ================================================================== */
+class Router {
+  constructor(games) {
+    this.games = games; // { name: gameInstanceOrNull }
+    this.current = 'menu';
+    document.getElementById('backToMenuBtn').addEventListener('click', () => this.go('menu'));
+  }
+  go(name) {
+    document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
+    document.getElementById('view-' + name).classList.remove('hidden');
+    document.getElementById('backToMenuBtn').classList.toggle('hidden', name === 'menu');
+    this.current = name;
+    const game = this.games[name];
+    if (game && game.onEnter) game.onEnter();
+  }
+}
+
+/* ==================================================================
+   BOOT
+   ================================================================== */
+new ScoreboardComponent();
+const zoomGame = new ZoomRevealGame();
+const cubesGame = new ScatteredCubesGame();
+const rouletteGame = new RouletteGame();
+const router = new Router({ menu: null, zoom: zoomGame, cubes: cubesGame, roulette: rouletteGame });
+new MenuComponent(router);
+
+document.getElementById('fullscreenBtn').addEventListener('click', () => {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+    return;
+  }
+
+  let target;
+  switch (router.current) {
+    case 'zoom':
+      target = document.querySelector('#view-zoom .stage-wrap');
+      break;
+    case 'cubes':
+      target = document.querySelector('#view-cubes .stage-wrap');
+      break;
+    case 'roulette':
+      target = document.querySelector('#view-roulette .roulette-stage');
+      break;
+    case 'menu':
+    default:
+      target = document.querySelector('.app');
+      break;
+  }
+
+  if (target) target.requestFullscreen();
+});
+</script>
+</body>
+</html>

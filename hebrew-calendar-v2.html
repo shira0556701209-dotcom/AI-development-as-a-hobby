@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>משפחת סגיס 🌿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;500;600;700;800&family=Varela+Round&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@hebcal/core@5/dist/bundle.min.js"></script>
+<style>
+  :root{
+    --bg: #FBF9F3;
+    --bg-alt: #F5F1E6;
+    --sage: #C9D9C4;
+    --sage-dark: #A9C2A2;
+    --sage-deep: #6F9468;
+    --cream: #FFFDF8;
+    --text: #4A4238;
+    --text-soft: #8A7F70;
+    --lavender: #E4DEF2;
+    --lavender-text: #6B5C94;
+    --blush: #F6DDE2;
+    --blush-text: #A15C6B;
+    --peach: #FBE3D0;
+    --peach-text: #A76B3E;
+    --border: #E4DDC9;
+    --shadow: 0 8px 24px rgba(122, 110, 80, 0.08);
+    --shadow-soft: 0 4px 14px rgba(122, 110, 80, 0.06);
+    --radius: 18px;
+  }
+ 
+  * { box-sizing: border-box; }
+ 
+  body {
+    margin: 0;
+    font-family: 'Assistant', 'Varela Round', sans-serif;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg-alt) 100%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 60px;
+    direction: rtl;
+  }
+ 
+  .app { max-width: 1100px; margin: 0 auto; }
+ 
+  header { text-align: center; margin-bottom: 20px; position: relative; }
+  header h1 {
+    font-size: 2.15rem;
+    font-weight: 800;
+    color: var(--sage-deep);
+    margin: 0 0 4px;
+    letter-spacing: 0.3px;
+  }
+  header p { color: var(--text-soft); font-size: 0.95rem; margin: 0; }
+ 
+  .decor { position: absolute; font-size: 1.4rem; opacity: 0.7; user-select: none; }
+  .decor.left { left: 6%; top: -6px; transform: rotate(-15deg); }
+  .decor.right { right: 6%; top: -6px; transform: rotate(15deg); }
+
+  /* סרגל גיבוי וטעינת קבצים */
+  .backup-bar {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .backup-btn {
+    background: var(--cream);
+    border: 1.5px solid var(--border);
+    color: var(--text-soft);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-soft);
+  }
+  .backup-btn:hover {
+    background: var(--sage);
+    color: var(--text);
+    border-color: var(--sage-dark);
+  }
+ 
+  .nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: var(--cream);
+    border-radius: var(--radius);
+    padding: 14px 22px;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+ 
+  .nav-btn {
+    background: var(--sage);
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1.15rem;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-soft);
+  }
+  .nav-btn:hover { background: var(--sage-dark); transform: scale(1.08); }
+ 
+  .month-title { text-align: center; min-width: 240px; }
+  .month-title .heb {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .month-title .greg {
+    font-size: 0.88rem;
+    color: var(--sage-deep);
+    font-weight: 600;
+    margin-top: 2px;
+  }
+ 
+  .today-btn {
+    background: var(--lavender);
+    color: var(--lavender-text);
+    border: none;
+    padding: 9px 18px;
+    border-radius: 30px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.2s ease;
+  }
+  .today-btn:hover { transform: scale(1.05); }
+ 
+  .calendar-card {
+    background: var(--cream);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 20px;
+    overflow: hidden;
+  }
+ 
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .weekdays div {
+    text-align: center;
+    font-weight: 700;
+    color: var(--sage-deep);
+    font-size: 0.9rem;
+    padding: 6px 0;
+  }
+ 
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+ 
+  .day-cell {
+    background: var(--bg);
+    border-radius: 14px;
+    min-height: 116px;
+    padding: 8px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+  }
+  .day-cell:hover { border-color: var(--sage); transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+  .day-cell.empty { background: transparent; cursor: default; pointer-events: none; }
+  .day-cell.today { background: linear-gradient(160deg, #EFF6EC, #F7FAF3); border-color: var(--sage-dark); }
+  .day-cell.rosh-chodesh::before {
+    content: '🌙';
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+ 
+  .day-numbers { display: flex; justify-content: space-between; align-items: flex-start; }
+  .heb-num { font-weight: 800; font-size: 1.15rem; color: var(--text); }
+  .today .heb-num { color: var(--sage-deep); }
+  .greg-num { font-size: 0.68rem; color: var(--text-soft); text-align: left; margin-top: 3px; }
+ 
+  .events-wrap { display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+ 
+  .event-tag {
+    font-size: 0.7rem;
+    line-height: 1.3;
+    padding: 3px 7px;
+    border-radius: 8px;
+    white-space: normal;
+    word-break: break-word;
+    cursor: pointer;
+    font-weight: 500;
+    transition: opacity 0.15s ease;
+  }
+  .event-tag:hover { opacity: 0.75; }
+  .event-tag.c0 { background: var(--lavender); color: var(--lavender-text); }
+  .event-tag.c1 { background: var(--blush); color: var(--blush-text); }
+  .event-tag.c2 { background: var(--peach); color: var(--peach-text); }
+ 
+  .add-hint {
+    margin-top: auto;
+    font-size: 0.7rem;
+    color: var(--sage-dark);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .day-cell:hover .add-hint { opacity: 1; }
+ 
+  /* Modal */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(74, 66, 56, 0.35);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .overlay.open { display: flex; }
+ 
+  .modal {
+    background: var(--cream);
+    border-radius: 22px;
+    padding: 28px 26px;
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(90, 80, 60, 0.25);
+    animation: pop 0.22s ease;
+  }
+  @keyframes pop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+ 
+  .modal h2 { margin: 0 0 4px; font-size: 1.25rem; color: var(--sage-deep); }
+  .modal .modal-date { color: var(--text-soft); font-size: 0.88rem; margin-bottom: 18px; }
+ 
+  .modal label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+ 
+  .modal input[type="text"],
+  .modal input[type="number"] {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .modal input:focus { border-color: var(--sage-dark); }
+ 
+  .field-row { display: flex; gap: 10px; }
+  .field-row > div { flex: 1; }
+ 
+  .calc-toggle, .yeartype-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+  .calc-toggle button, .yeartype-toggle button {
+    flex: 1;
+    padding: 9px 6px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .calc-toggle button.active, .yeartype-toggle button.active {
+    background: var(--sage);
+    color: var(--text);
+    border-color: var(--sage-dark);
+  }
+ 
+  .color-picker { display: flex; gap: 10px; margin-bottom: 20px; }
+  .color-swatch {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.15s ease;
+  }
+  .color-swatch:hover { transform: scale(1.1); }
+  .color-swatch.selected { border-color: var(--text); }
+  .color-swatch.c0 { background: var(--lavender); }
+  .color-swatch.c1 { background: var(--blush); }
+  .color-swatch.c2 { background: var(--peach); }
+ 
+  .existing-events { margin-bottom: 18px; display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; }
+  .existing-event { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border-radius: 10px; font-size: 0.86rem; gap: 8px; }
+  .existing-event span.title { flex: 1; }
+  .existing-event .actions { display: flex; gap: 2px; }
+  .existing-event button { background: none; border: none; cursor: pointer; font-size: 0.95rem; color: inherit; opacity: 0.65; padding: 2px 5px; }
+  .existing-event button:hover { opacity: 1; }
+ 
+  .section-label { font-size: 0.78rem; font-weight: 700; color: var(--sage-deep); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+ 
+  hr.sep { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+ 
+  .hint-text { font-size: 0.75rem; color: var(--text-soft); margin: -8px 0 14px; line-height: 1.4; }
+ 
+  .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+  .btn { flex: 1; padding: 11px; border-radius: 12px; border: none; font-family: inherit; font-weight: 700; font-size: 0.92rem; cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--sage-dark); color: white; }
+  .btn-secondary { background: var(--bg-alt); color: var(--text-soft); }
+  .btn-cancel-edit { background: var(--blush); color: var(--blush-text); }
+ 
+  footer { text-align: center; margin-top: 30px; color: var(--text-soft); font-size: 0.8rem; }
+ 
+  @media (max-width: 700px) {
+    .day-cell { min-height: 86px; padding: 6px; }
+    .greg-num { display: none; }
+    .heb-num { font-size: 0.95rem; }
+    .event-tag { font-size: 0.6rem; padding: 2px 5px; }
+    .weekdays div { font-size: 0.75rem; }
+    header h1 { font-size: 1.6rem; }
+    .decor { display: none; }
+    .month-title .heb { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+ 
+<div class="app">
+  <header>
+    <span class="decor left">🌿</span>
+    <h1>משפחת סגיס</h1>
+    <p>לוח שנה עברי, אירועים וימי הולדת משפחתיים 🌸</p>
+    <span class="decor right">🌼</span>
+  </header>
+
+  <div class="nav-bar">
+    <button class="nav-btn" id="prevBtn" title="חודש קודם">‹</button>
+    <div class="month-title">
+      <div class="heb" id="monthHeb"></div>
+      <div class="greg" id="monthGreg"></div>
+    </div>
+    <button class="nav-btn" id="nextBtn" title="חודש הבא">›</button>
+    <button class="today-btn" id="todayBtn">היום</button>
+  </div>
+ 
+  <div class="calendar-card">
+    <div class="weekdays">
+      <div>א׳</div><div>ב׳</div><div>ג׳</div><div>ד׳</div><div>ה׳</div><div>ו׳</div><div>ש׳</div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+  <!-- כפתורי גיבוי וטעינה -->
+  <div class="backup-bar">
+    <button class="backup-btn" id="exportBtn" title="הורדת קובץ גיבוי של כל האירועים">
+      📤 גיבוי נתונים 
+    </button>
+    <button class="backup-btn" id="importBtn" title="טעינת אירועים מקובץ גיבוי ששמור אצלך">
+      📥 טעינת גיבוי 
+    </button>
+    <input type="file" id="importInput" accept=".json" style="display: none;">
+  </div>
+ 
+  <footer>נבנה באהבה עבור המשפחה 💚</footer>
+</div>
+ 
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>אירוע משפחתי</h2>
+    <div class="modal-date" id="modalDate"></div>
+ 
+    <div id="existingSection">
+      <div class="section-label">אירועים קיימים ביום זה</div>
+      <div class="existing-events" id="existingEvents"></div>
+      <hr class="sep">
+    </div>
+ 
+    <div class="section-label" id="formLabel">הוספת אירוע חדש</div>
+ 
+    <label for="eventInput">שם האירוע</label>
+    <input type="text" id="eventInput" placeholder="לדוגמה: יום הולדת לחיים 🎂" maxlength="60">
+ 
+    <label>חישוב שנים </label>
+    <div class="calc-toggle" id="calcToggle">
+      <button type="button" data-mode="none" class="active">ללא חישוב</button>
+      <button type="button" data-mode="age">גיל (יום הולדת)</button>
+      <button type="button" data-mode="years">מס' שנים (אחר)</button>
+    </div>
+ 
+    <div id="yearSection" style="display:none;">
+      <div class="field-row">
+        <div>
+          <label for="yearInput">שנת ההתחלה</label>
+          <input type="text" id="yearInput" placeholder='לדוגמה: 1995 או תשנ"ה'>
+        </div>
+      </div>
+      <label>סוג השנה שהוזנה</label>
+      <div class="yeartype-toggle" id="yeartypeToggle">
+        <button type="button" data-type="gregorian" class="active">לועזית (1995)</button>
+        <button type="button" data-type="hebrew">עברית (תשנ"ה)</button>
+      </div>
+      <div class="hint-text">החישוב יתעדכן אוטומטית בכל שנה עברית שתצפו בה בלוח 🌿</div>
+    </div>
+ 
+    <label>צבע תגית</label>
+    <div class="color-picker" id="colorPicker">
+      <div class="color-swatch c0 selected" data-c="c0" title="לבנדר"></div>
+      <div class="color-swatch c1" data-c="c1" title="ורוד"></div>
+      <div class="color-swatch c2" data-c="c2" title="אפרסק"></div>
+    </div>
+ 
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="saveBtn">הוספה</button>
+      <button class="btn btn-cancel-edit" id="cancelEditBtn" style="display:none;">ביטול עריכה</button>
+      <button class="btn btn-secondary" id="closeBtn">סגירה</button>
+    </div>
+  </div>
+</div>
+ 
+<script>
+(function () {
+  const { HDate, gematriya } = hebcal;
+ 
+  const STORAGE_KEY = 'hebrew_family_calendar_events_v3';
+  let events = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+ 
+  const todayHD = new HDate(new Date());
+  let viewYear = todayHD.getFullYear();
+  let viewTishreiIdx = todayHD.getTishreiMonth();
+ 
+  let selectedDateKey = null;
+  let selectedCellInfo = null;
+  let selectedColor = 'c0';
+  let calcMode = 'none';
+  let yearType = 'gregorian';
+  let editingKey = null;
+ 
+  const grid = document.getElementById('grid');
+  const monthHeb = document.getElementById('monthHeb');
+  const monthGreg = document.getElementById('monthGreg');
+  const overlay = document.getElementById('overlay');
+  const modalDate = document.getElementById('modalDate');
+  const existingEventsEl = document.getElementById('existingEvents');
+  const existingSection = document.getElementById('existingSection');
+  const eventInput = document.getElementById('eventInput');
+  const yearInput = document.getElementById('yearInput');
+  const yearSection = document.getElementById('yearSection');
+  const calcToggle = document.getElementById('calcToggle');
+  const yeartypeToggle = document.getElementById('yeartypeToggle');
+  const colorPicker = document.getElementById('colorPicker');
+  const saveBtn = document.getElementById('saveBtn');
+  const cancelEditBtn = document.getElementById('cancelEditBtn');
+  const formLabel = document.getElementById('formLabel');
+
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importInput = document.getElementById('importInput');
+ 
+  const gregFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'long', year: 'numeric' });
+  const gregShortFmt = new Intl.DateTimeFormat('he-IL', { day: 'numeric', month: 'short' });
+  const gregWeekdayFmt = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+ 
+  function saveEvents() { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); }
+ 
+  function hebMonthName(nisanMonth, year) {
+    const isLeap = HDate.isLeapYear(year);
+    const names = {
+      1: 'ניסן',
+      2: 'אייר',
+      3: 'סיוון',
+      4: 'תמוז',
+      5: 'אב',
+      6: 'אלול',
+      7: 'תשרי',
+      8: 'חשוון',
+      9: 'כסלו',
+      10: 'טבת',
+      11: 'שבט',
+      12: isLeap ? 'אדר א׳' : 'אדר',
+      13: 'אדר ב׳'
+    };
+    return names[nisanMonth] || '';
+  }
+ 
+  function monthOrderMap(year) {
+    const n = HDate.monthsInYear(year);
+    const map = {};
+    for (let m = 1; m <= n; m++) {
+      const hd = new HDate(1, m, year);
+      map[hd.getTishreiMonth()] = m;
+    }
+    return map;
+  }
+ 
+  function goNextMonth() {
+    const n = HDate.monthsInYear(viewYear);
+    viewTishreiIdx++;
+    if (viewTishreiIdx > n) { viewTishreiIdx = 1; viewYear++; }
+    render();
+  }
+  function goPrevMonth() {
+    viewTishreiIdx--;
+    if (viewTishreiIdx < 1) { viewYear--; viewTishreiIdx = HDate.monthsInYear(viewYear); }
+    render();
+  }
+ 
+  function canonicalMonth(nisanMonth, isLeap) {
+    if (nisanMonth === 12 && !isLeap) return 'adar';
+    if (nisanMonth === 12 && isLeap) return 'adarI';
+    if (nisanMonth === 13) return 'adarII';
+    return String(nisanMonth);
+  }
+ 
+  function lookupKeys(nisanMonth, day, isLeap) {
+    if (nisanMonth !== 12 && nisanMonth !== 13) {
+      return [canonicalMonth(nisanMonth, isLeap) + '-' + day];
+    }
+    if (isLeap) {
+      if (nisanMonth === 12) return ['adarI-' + day];
+      return ['adar-' + day, 'adarII-' + day];
+    }
+    return ['adar-' + day, 'adarI-' + day, 'adarII-' + day];
+  }
+ 
+  function getEventsForCell(nisanMonth, day, isLeap) {
+    const results = [];
+    lookupKeys(nisanMonth, day, isLeap).forEach(key => {
+      (events[key] || []).forEach((ev, idx) => results.push({ ev, key, idx }));
+    });
+    return results;
+  }
+ 
+  // פונקציה מעודכנת לתיקון חישוב הגילאים
+  function gregToHebrewYear(gregYear, canonMonth) {
+    const isLateInGregorianYear = /^(7|8|9|10)$/.test(canonMonth);
+    return isLateInGregorianYear ? gregYear + 3761 : gregYear + 3760;
+  }
+ 
+  function startHebrewYearFor(ev) {
+    if (!ev.startYear) return null;
+    if (ev.yearType === 'hebrew') return ev.startYear;
+    return gregToHebrewYear(ev.startYear, ev.canonMonth);
+  }
+ 
+  function buildEventLabel(ev, viewedHebYear) {
+    if (!ev.calcMode || ev.calcMode === 'none' || !ev.startYear) return ev.title;
+    const startHY = startHebrewYearFor(ev);
+    const elapsed = viewedHebYear - startHY;
+    if (isNaN(elapsed)) return ev.title;
+    if (ev.calcMode === 'age') return ev.title + ' (גיל ' + elapsed + ')';
+    if (ev.calcMode === 'years') return ev.title + ' (' + elapsed + ' שנים)';
+    return ev.title;
+  }
+ 
+  function colorVarName(c) {
+    if (c === 'c1') return 'blush';
+    if (c === 'c2') return 'peach';
+    return 'lavender';
+  }
+ 
+  function render() {
+    const map = monthOrderMap(viewYear);
+    const nisanMonth = map[viewTishreiIdx];
+    const isLeap = HDate.isLeapYear(viewYear);
+ 
+    let displayName = hebMonthName(nisanMonth, viewYear);
+    monthHeb.textContent = displayName + ' ' + gematriya(viewYear);
+ 
+    const firstHD = new HDate(1, nisanMonth, viewYear);
+    const daysInMonth = firstHD.daysInMonth();
+    const lastHD = new HDate(daysInMonth, nisanMonth, viewYear);
+    const firstGreg = firstHD.greg();
+    const lastGreg = lastHD.greg();
+    monthGreg.textContent = gregShortFmt.format(firstGreg) + ' – ' + gregFmt.format(lastGreg);
+ 
+    grid.innerHTML = '';
+ 
+    const startOffset = firstGreg.getDay();
+    for (let i = 0; i < startOffset; i++) {
+      const empty = document.createElement('div');
+      empty.className = 'day-cell empty';
+      grid.appendChild(empty);
+    }
+ 
+    for (let day = 1; day <= daysInMonth; day++) {
+      const hd = new HDate(day, nisanMonth, viewYear);
+      const gregDate = hd.greg();
+ 
+      const cell = document.createElement('div');
+      cell.className = 'day-cell';
+      if (hd.isSameDate(todayHD)) cell.classList.add('today');
+      if (day === 1) cell.classList.add('rosh-chodesh');
+ 
+      const numbersRow = document.createElement('div');
+      numbersRow.className = 'day-numbers';
+ 
+      const hebNum = document.createElement('div');
+      hebNum.className = 'heb-num';
+      hebNum.textContent = gematriya(day);
+ 
+      numbersRow.appendChild(hebNum);
+      cell.appendChild(numbersRow);
+ 
+      const gregNum = document.createElement('div');
+      gregNum.className = 'greg-num';
+      gregNum.textContent = gregShortFmt.format(gregDate);
+      cell.appendChild(gregNum);
+ 
+      const eventsWrap = document.createElement('div');
+      eventsWrap.className = 'events-wrap';
+ 
+      const dayEvents = getEventsForCell(nisanMonth, day, isLeap);
+      dayEvents.forEach(({ ev, key, idx }) => {
+        const tag = document.createElement('div');
+        tag.className = 'event-tag ' + (ev.color || 'c0');
+        tag.textContent = buildEventLabel(ev, viewYear);
+        tag.title = 'לחצו לעריכה או מחיקה';
+        tag.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openModal(nisanMonth, day, isLeap, { key, idx });
+        });
+        eventsWrap.appendChild(tag);
+      });
+      cell.appendChild(eventsWrap);
+ 
+      const hint = document.createElement('div');
+      hint.className = 'add-hint';
+      hint.textContent = '+ הוספת אירוע';
+      cell.appendChild(hint);
+ 
+      cell.addEventListener('click', () => openModal(nisanMonth, day, isLeap, null));
+ 
+      grid.appendChild(cell);
+    }
+  }
+ 
+  function setCalcMode(mode) {
+    calcMode = mode;
+    calcToggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    yearSection.style.display = mode === 'none' ? 'none' : 'block';
+  }
+ 
+  function setYearType(type) {
+    yearType = type;
+    yeartypeToggle.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.type === type));
+  }
+ 
+  function resetForm() {
+    eventInput.value = '';
+    yearInput.value = '';
+    setCalcMode('none');
+    setYearType('gregorian');
+    selectedColor = 'c0';
+    colorPicker.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    colorPicker.querySelector('[data-c="c0"]').classList.add('selected');
+    editingKey = null;
+    saveBtn.textContent = 'הוספה';
+    formLabel.textContent = 'הוספת אירוע חדש';
+    cancelEditBtn.style.display = 'none';
+  }
+ 
+  function loadEventIntoForm(key, idx) {
+    const ev = events[key] && events[key][idx];
+    if (!ev) return;
+    editingKey = { key, idx };
+    eventInput.value = ev.title;
+    
+    // הצגת השנה באופן חכם
+    if (ev.startYear) {
+      if (ev.yearType === 'hebrew') {
+        // אם הוזנה שנה עברית, נציג אותה בחזרה באותיות עבריות באמצעות הפונקציה הקיימת של hebcal
+        yearInput.value = gematriya(ev.startYear);
+      } else {
+        yearInput.value = ev.startYear;
+      }
+    } else {
+      yearInput.value = '';
+    }
+    
+    setCalcMode(ev.calcMode || 'none');
+    setYearType(ev.yearType || 'gregorian');
+    selectedColor = ev.color || 'c0';
+    colorPicker.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    colorPicker.querySelector('[data-c="' + selectedColor + '"]').classList.add('selected');
+    saveBtn.textContent = 'עדכון';
+    formLabel.textContent = 'עריכת אירוע';
+    cancelEditBtn.style.display = 'block';
+    eventInput.focus();
+  }
+ 
+  function openModal(nisanMonth, day, isLeap, editRef) {
+    const hd = new HDate(day, nisanMonth, viewYear);
+    const canon = canonicalMonth(nisanMonth, isLeap);
+    selectedDateKey = canon + '-' + day;
+    selectedCellInfo = { nisanMonth, day, isLeap, canon };
+ 
+    modalDate.textContent = gregWeekdayFmt.format(hd.greg()) + '  •  ' + gematriya(day) + ' ' + hebMonthName(nisanMonth, viewYear) + ' ' + gematriya(viewYear);
+ 
+    resetForm();
+    renderExistingEvents(nisanMonth, day, isLeap);
+ 
+    if (editRef) loadEventIntoForm(editRef.key, editRef.idx);
+ 
+    overlay.classList.add('open');
+    setTimeout(() => eventInput.focus(), 50);
+  }
+ 
+  function renderExistingEvents(nisanMonth, day, isLeap) {
+    existingEventsEl.innerHTML = '';
+    const dayEvents = getEventsForCell(nisanMonth, day, isLeap);
+    if (dayEvents.length === 0) { existingSection.style.display = 'none'; return; }
+    existingSection.style.display = 'block';
+ 
+    dayEvents.forEach(({ ev, key, idx }) => {
+      const row = document.createElement('div');
+      row.className = 'existing-event';
+      row.style.background = 'var(--' + colorVarName(ev.color) + ')';
+ 
+      const span = document.createElement('span');
+      span.className = 'title';
+      span.textContent = buildEventLabel(ev, viewYear);
+ 
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+ 
+      const editBtn = document.createElement('button');
+      editBtn.textContent = '✎';
+      editBtn.title = 'עריכה';
+      editBtn.addEventListener('click', () => loadEventIntoForm(key, idx));
+ 
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '✕';
+      delBtn.title = 'מחיקה';
+      delBtn.addEventListener('click', () => {
+        if (!confirm('למחוק את האירוע "' + ev.title + '"?')) return;
+        events[key].splice(idx, 1);
+        if (events[key].length === 0) delete events[key];
+        saveEvents();
+        renderExistingEvents(nisanMonth, day, isLeap);
+        render();
+        if (editingKey && editingKey.key === key && editingKey.idx === idx) resetForm();
+      });
+ 
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(span);
+      row.appendChild(actions);
+      existingEventsEl.appendChild(row);
+    });
+  }
+ 
+  function closeModal() {
+    overlay.classList.remove('open');
+    selectedDateKey = null;
+    selectedCellInfo = null;
+    editingKey = null;
+  }
+
+  /* פונקציות ייצוא וייבוא קובץ JSON */
+  function exportData() {
+    const dataStr = JSON.stringify(events, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `family_calendar_backup_${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const imported = JSON.parse(evt.target.result);
+        if (typeof imported !== 'object' || imported === null) {
+          alert('הקובץ אינו מכיל נתונים תקינים.');
+          return;
+        }
+
+        const replace = confirm('האם להחליף את כל האירועים הקיימים בלוח?\n\nלחץ "אישור" להחלפה מלאה, או "ביטול" כדי למזג את האירועים מהקובץ עם האירועים הקיימים.');
+        
+        if (replace) {
+          events = imported;
+        } else {
+          for (let key in imported) {
+            if (!events[key]) {
+              events[key] = imported[key];
+            } else {
+              imported[key].forEach(newItem => {
+                const exists = events[key].some(e => e.title === newItem.title && e.startYear === newItem.startYear);
+                if (!exists) events[key].push(newItem);
+              });
+            }
+          }
+        }
+
+        saveEvents();
+        render();
+        alert('הנתונים נטענו בהצלחה! 🌿');
+      } catch (err) {
+        alert('שגיאה בקריאת הקובץ. ודא שזהו קובץ JSON תקין.');
+      }
+      importInput.value = ''; // איפוס
+    };
+    reader.readAsText(file);
+  }
+
+  // פונקציית עזר להמרת טקסט עברי למספר שנה
+  function parseHebrewYear(str) {
+    if (/^\d+$/.test(str.trim())) return parseInt(str.trim(), 10);
+    let cleanStr = str.replace(/[^א-ת]/g, '');
+    if (!cleanStr) return null;
+    const gematria = {
+      'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9,
+      'י': 10, 'כ': 20, 'ך': 20, 'ל': 30, 'מ': 40, 'ם': 40, 'נ': 50, 'ן': 50,
+      'ס': 60, 'ע': 70, 'פ': 80, 'ף': 80, 'צ': 90, 'ץ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400
+    };
+    let sum = 0;
+    if (cleanStr.length > 2 && cleanStr[0] === 'ה' && cleanStr[1] === 'ת') {
+      sum += 5000;
+      cleanStr = cleanStr.substring(1);
+    }
+    for (let i = 0; i < cleanStr.length; i++) {
+      sum += gematria[cleanStr[i]] || 0;
+    }
+    if (sum > 0 && sum < 1000) {
+      sum += 5000;
+    }
+    return sum || null;
+  }
+ 
+  calcToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    setCalcMode(btn.dataset.mode);
+  });
+ 
+  yeartypeToggle.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    setYearType(btn.dataset.type);
+  });
+ 
+  colorPicker.addEventListener('click', (e) => {
+    const swatch = e.target.closest('.color-swatch');
+    if (!swatch) return;
+    colorPicker.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    swatch.classList.add('selected');
+    selectedColor = swatch.dataset.c;
+  });
+ 
+  saveBtn.addEventListener('click', () => {
+    const title = eventInput.value.trim();
+    if (!title || !selectedDateKey) return;
+ 
+    // שימוש בפונקציה החדשה שיודעת לקרוא גם טקסט וגם מספר
+    const startYearVal = yearInput.value ? parseHebrewYear(yearInput.value) : null;
+    const effectiveCalcMode = (calcMode !== 'none' && startYearVal) ? calcMode : 'none';
+ 
+    const eventData = {
+      title,
+      color: selectedColor,
+      calcMode: effectiveCalcMode,
+      startYear: effectiveCalcMode !== 'none' ? startYearVal : null,
+      yearType: effectiveCalcMode !== 'none' ? yearType : null,
+      canonMonth: selectedCellInfo.canon
+    };
+ 
+    let targetKey = selectedDateKey;
+    if (editingKey) {
+      targetKey = editingKey.key;
+      events[targetKey][editingKey.idx] = eventData;
+    } else {
+      if (!events[targetKey]) events[targetKey] = [];
+      events[targetKey].push(eventData);
+    }
+ 
+    saveEvents();
+ 
+    const { nisanMonth, day, isLeap } = selectedCellInfo;
+    resetForm();
+    renderExistingEvents(nisanMonth, day, isLeap);
+    render();
+  });
+ 
+  cancelEditBtn.addEventListener('click', () => resetForm());
+ 
+  eventInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveBtn.click(); });
+ 
+  document.getElementById('closeBtn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+ 
+  document.getElementById('prevBtn').addEventListener('click', goPrevMonth);
+  document.getElementById('nextBtn').addEventListener('click', goNextMonth);
+ 
+  document.getElementById('todayBtn').addEventListener('click', () => {
+    viewYear = todayHD.getFullYear();
+    viewTishreiIdx = todayHD.getTishreiMonth();
+    render();
+  });
+
+  /* חיבור אירועי גיבוי וייבוא */
+  exportBtn.addEventListener('click', exportData);
+  importBtn.addEventListener('click', () => importInput.click());
+  importInput.addEventListener('change', importData);
+ 
+  render();
+})();
+</script>
+ 
+</body>
+</html>
